@@ -20,10 +20,10 @@ func NewGenericRepository[T any, X string | uint](db *gorm.DB) IGenericRepo[T, X
 func (r *genericRepository[T, X]) Create(model T) (T, error) {
 	result := r.DB.Create(&model)
 
-	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-		return model, models.ErrDuplicatedKeyEmail
-	}
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return model, models.ErrDuplicatedKeyEmail
+		}
 		return model, result.Error
 	}
 	if result.RowsAffected == 0 {
@@ -64,8 +64,17 @@ func (r *genericRepository[T, X]) Get(id X, preload string) (*T, error) {
 }
 
 func (r *genericRepository[T, X]) Update(id X, amended T) error {
-	result := r.DB.Save(&amended)
+	var existing T
+	result := r.DB.First(&existing, "ID = ?", id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return gorm.ErrRecordNotFound
+	}
+	if result.Error != nil {
+		return result.Error
+	}
+
+	result = r.DB.Save(&amended)
+	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
 	if result.Error != nil {
@@ -84,17 +93,21 @@ func (r *genericRepository[T, X]) Delete(id X, permanently bool) error {
 		deleter = r.DB
 	}
 
-	switch any(id).(type) {
-	case string:
+	if _, ok := any(id).(string); ok {
 		deleter = deleter.Where("id = ?", id).Delete(t)
-	default:
+	} else {
 		deleter = deleter.Delete(t, id)
 	}
-	if errors.Is(deleter.Error, gorm.ErrRecordNotFound) {
-		return gorm.ErrRecordNotFound
-	}
+
 	if deleter.Error != nil {
+		if errors.Is(deleter.Error, gorm.ErrRecordNotFound) {
+			return gorm.ErrRecordNotFound
+		}
 		return deleter.Error
+	}
+
+	if deleter.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
