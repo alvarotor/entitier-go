@@ -7,19 +7,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type controllerGen[T any, X string | uint] struct {
+type controllerGeneric[T any, X string | uint] struct {
 	svcT services.GenericService[T, X]
 	log  logger.Logger
 }
 
-func NewGenController[T any, X string | uint](log logger.Logger, db *gorm.DB) IControllerGen[T, X] {
+func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB) IControllerGeneric[T, X] {
 	repo := repositories.NewGenericRepository[T, X](
 		db,
 	)
 	svcGen := services.NewGenericService(
 		repo,
 	)
-	return &controllerGen[T, X]{
+	return &controllerGeneric[T, X]{
 		svcT: svcGen,
 		log:  log,
 	}

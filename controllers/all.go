@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (u *controllerGen[T, X]) GetAll(c *gin.Context) {
+func (u *controllerGeneric[T, X]) GetAll(c *gin.Context) {
 	ps, err := u.svcT.GetAll()
 	if err != nil {
 		u.log.Error(err.Error())

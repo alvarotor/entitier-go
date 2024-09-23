@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (u *controllerGen[T, X]) Get(c *gin.Context) {
+func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 	idInterface := utils.GetIDParam(c)
 	if idInterface == nil {
 		err := "must provide valid id"
