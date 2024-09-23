@@ -12,7 +12,7 @@ type controllerGen[T any, X string | uint] struct {
 	log  logger.Logger
 }
 
-func NewGenericControllerSrv[T any, X string | uint](log logger.Logger, db *gorm.DB) IControllerGen[T, X] {
+func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB) IControllerGen[T, X] {
 	repo := repositories.NewGenericRepository[T, X](
 		db,
 	)
