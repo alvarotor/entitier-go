@@ -2,15 +2,13 @@ package repositories
 
 import (
 	"errors"
-	"log"
 	"testing"
 
+	"github.com/alvarotor/entitier-go/mocks"
 	"github.com/alvarotor/entitier-go/models"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"github.com/alvarotor/entitier-go/repositories/testModels"
-
 )
 
 // Setup the in-memory SQLite database for testing purposes.
@@ -21,7 +19,7 @@ func setupDB() (*gorm.DB, error) {
 	}
 
 	// Automatically migrate the mock model
-	err = db.AutoMigrate(&testModels.MockModel{})
+	err = db.AutoMigrate(&mocks.MockModel{})
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +31,10 @@ func TestGenericRepository_Create(t *testing.T) {
 	db, err := setupDB()
 	assert.NoError(t, err)
 
-	repo := NewGenericRepository[testModels.MockModel, uint](db)
+	repo := NewGenericRepository[mocks.MockModel, uint](db)
 
 	// Test successful creation
-	model := testModels.MockModel{Name: "John Doe", Email: "john@example.com"}
+	model := mocks.MockModel{Name: "John Doe", Email: "john@example.com"}
 	created, err := repo.Create(model)
 	assert.NoError(t, err)
 	assert.Equal(t, model.Name, created.Name)
@@ -53,7 +51,7 @@ func TestGenericRepository_GetAll(t *testing.T) {
 	db, err := setupDB()
 	assert.NoError(t, err)
 
-	repo := NewGenericRepository[testModels.MockModel, uint](db)
+	repo := NewGenericRepository[mocks.MockModel, uint](db)
 
 	// Initially should return models.ErrNotFound
 	all, err := repo.GetAll()
@@ -61,8 +59,8 @@ func TestGenericRepository_GetAll(t *testing.T) {
 	assert.True(t, errors.Is(err, models.ErrNotFound))
 
 	// Create some mock records
-	model1 := testModels.MockModel{Name: "John Doe", Email: "john@example.com"}
-	model2 := testModels.MockModel{Name: "Jane Smith", Email: "jane@example.com"}
+	model1 := mocks.MockModel{Name: "John Doe", Email: "john@example.com"}
+	model2 := mocks.MockModel{Name: "Jane Smith", Email: "jane@example.com"}
 	_, err = repo.Create(model1)
 	assert.NoError(t, err)
 	_, err = repo.Create(model2)
@@ -78,7 +76,7 @@ func TestGenericRepository_Get(t *testing.T) {
 	db, err := setupDB()
 	assert.NoError(t, err)
 
-	repo := NewGenericRepository[testModels.MockModel, uint](db)
+	repo := NewGenericRepository[mocks.MockModel, uint](db)
 
 	// Test getting a non-existent record
 	_, err = repo.Get(1, "")
@@ -86,7 +84,7 @@ func TestGenericRepository_Get(t *testing.T) {
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	// Create a mock record
-	model := testModels.MockModel{Name: "John Doe", Email: "john@example.com"}
+	model := mocks.MockModel{Name: "John Doe", Email: "john@example.com"}
 	created, err := repo.Create(model)
 	assert.NoError(t, err)
 
@@ -100,16 +98,16 @@ func TestGenericRepository_Update(t *testing.T) {
 	db, err := setupDB()
 	assert.NoError(t, err)
 
-	repo := NewGenericRepository[testModels.MockModel, uint](db)
+	repo := NewGenericRepository[mocks.MockModel, uint](db)
 
 	// Test updating a non-existent record
-	nonExistentModel := testModels.MockModel{ID: 999, Name: "Doesn't Exist", Email: "noone@example.com"}
+	nonExistentModel := mocks.MockModel{ID: 999, Name: "Doesn't Exist", Email: "noone@example.com"}
 	err = repo.Update(nonExistentModel.ID, nonExistentModel)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	// Create a mock record
-	model := MockModel{Name: "John Doe", Email: "john@example.com"}
+	model := mocks.MockModel{Name: "John Doe", Email: "john@example.com"}
 	created, err := repo.Create(model)
 	assert.NoError(t, err)
 
@@ -128,7 +126,7 @@ func TestGenericRepository_Delete(t *testing.T) {
 	db, err := setupDB()
 	assert.NoError(t, err)
 
-	repo := NewGenericRepository[testModels.MockModel, uint](db)
+	repo := NewGenericRepository[mocks.MockModel, uint](db)
 
 	// Test deleting a non-existent record
 	err = repo.Delete(999, false)
@@ -136,7 +134,7 @@ func TestGenericRepository_Delete(t *testing.T) {
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	// Create a mock record
-	model := testModels.MockModel{Name: "John Doe", Email: "john@example.com"}
+	model := mocks.MockModel{Name: "John Doe", Email: "john@example.com"}
 	created, err := repo.Create(model)
 	assert.NoError(t, err)
 
@@ -150,7 +148,7 @@ func TestGenericRepository_Delete(t *testing.T) {
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	// Test hard delete
-	created, err = repo.Create(testModels.MockModel{Name: "Jane Doe", Email: "jane@example.com"})
+	created, err = repo.Create(mocks.MockModel{Name: "Jane Doe", Email: "jane@example.com"})
 	assert.NoError(t, err)
 
 	err = repo.Delete(created.ID, true)
