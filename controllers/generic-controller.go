@@ -20,7 +20,7 @@ type IControllerGeneric[T any, X string | uint] interface {
 }
 
 type controllerGeneric[T any, X string | uint] struct {
-	svcT services.GenericService[T, X]
+	svcT services.IGenericService[T, X]
 	log  logger.Logger
 }
 

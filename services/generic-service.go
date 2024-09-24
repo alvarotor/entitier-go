@@ -10,8 +10,8 @@ type GenericService[T any, X string | uint] struct {
 
 func NewGenericService[T any, X string | uint](
 	repo repositories.IGenericRepo[T, X],
-) GenericService[T, X] {
-	return GenericService[T, X]{
+) IGenericService[T, X] {
+	return &GenericService[T, X]{
 		repo: repo,
 	}
 }
