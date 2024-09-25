@@ -3,6 +3,7 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +23,23 @@ type TestModelWithVariousFields struct {
 	Age      int
 	Salary   float64
 	JoinedAt time.Time
+}
+
+type OrdersModel struct {
+	ID        uint `gorm:"primaryKey"`
+	OrderName string
+	UserID    uint
+}
+
+type TestModelPreload struct {
+	ID     uint          `gorm:"primaryKey"`
+	Email  string        `gorm:"unique"`
+	Orders []OrdersModel `gorm:"foreignKey:UserID"`
+}
+
+type TestModelWithStringID struct {
+	ID    string `gorm:"primaryKey"`
+	Email string `gorm:"unique"`
 }
 
 func TestGenericRepository_Create_WithVariousFields(t *testing.T) {
@@ -319,26 +337,61 @@ func TestGenericRepository_PermanentDelete_Success(t *testing.T) {
 	assert.Contains(t, err.Error(), "record not found")
 }
 
-// func TestGenericRepository_Concurrent_Create(t *testing.T) {
-// 	db := setupGORMSqlite(t, &TestModel{})
+var mu sync.Mutex // Mutex to control concurrent access
 
-// 	repo := NewGenericRepository[TestModel, uint](db)
+func TestGenericRepository_Concurrent_Create(t *testing.T) {
+	// Use file-based SQLite database to avoid in-memory issues
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to connect database: %v", err)
+	}
 
-// 	var wg sync.WaitGroup
-// 	concurrency := 10
+	// Set SQLite busy timeout to handle concurrent locks
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("failed to get db from gorm: %v", err)
+	}
+	sqlDB.SetConnMaxLifetime(0) // Disable timeout
+	sqlDB.SetMaxOpenConns(1)    // Ensure a single open connection to avoid concurrency issues
+	sqlDB.SetMaxIdleConns(1)    // Only allow 1 idle connection
 
-// 	for i := 0; i < concurrency; i++ {
-// 		wg.Add(1)
-// 		go func(i int) {
-// 			defer wg.Done()
-// 			model := TestModel{Email: fmt.Sprintf("test%d@example.com", i)}
-// 			_, err := repo.Create(model)
-// 			assert.NoError(t, err)
-// 		}(i)
-// 	}
+	// Ensure the migration happens
+	err = db.AutoMigrate(&TestModel{})
+	if err != nil {
+		t.Fatalf("failed to migrate database schema: %v", err)
+	}
 
-// 	wg.Wait()
-// }
+	repo := NewGenericRepository[TestModel, uint](db)
+
+	var wg sync.WaitGroup
+	concurrency := 10
+
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+
+			mu.Lock() // Lock the mutex before accessing the database
+			defer mu.Unlock()
+
+			model := TestModel{Email: fmt.Sprintf("test%d@example.com", i)}
+			_, err := repo.Create(model)
+			assert.NoError(t, err)
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Ensure that all records were created in the database
+	var count int64
+	err = db.Model(&TestModel{}).Count(&count).Error
+	if err != nil {
+		t.Fatalf("Error counting records: %v", err)
+	}
+
+	// Verify that the number of created records matches the concurrency level
+	assert.Equal(t, int64(concurrency), count)
+}
 
 func TestGenericRepository_GetAll_LargeDataSet(t *testing.T) {
 	db := setupGORMSqlite(t, &TestModel{})
@@ -368,25 +421,126 @@ func TestGenericRepository_Delete_Unscoped(t *testing.T) {
 	db := setupGORMSqlite(t, &TestModel{})
 	repo := NewGenericRepository[TestModel, uint](db)
 
-	// Create a record that will be deleted
 	model := TestModel{Email: "ToBeDeleted"}
 	createdModel, err := repo.Create(model)
 	if err != nil {
 		t.Fatalf("Failed to create model: %v", err)
 	}
 
-	// Now attempt to delete it permanently
 	err = repo.Delete(createdModel.ID, true)
 	if err != nil {
 		t.Fatalf("Failed to delete model permanently: %v", err)
 	}
 
-	// Verify that the record is deleted
 	var result TestModel
 	err = db.Unscoped().First(&result, createdModel.ID).Error
 	if err == nil {
 		t.Errorf("Expected record to be deleted, but it still exists")
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("Expected 'record not found' error, but got: %v", err)
+	}
+}
+
+func TestGenericRepository_Delete_DBError(t *testing.T) {
+	db := setupGORMSqlite(t, &TestModel{})
+	repo := NewGenericRepository[TestModel, uint](db)
+
+	model := TestModel{Email: "error@test.com"}
+	_, err := repo.Create(model)
+	if err != nil {
+		t.Fatalf("Failed to set up test data: %v", err)
+	}
+
+	sqlDB, _ := db.DB()
+	sqlDB.Close()
+
+	err = repo.Delete(model.ID, true)
+	if err == nil {
+		t.Fatalf("Expected an error due to DB failure, but got none")
+	}
+}
+func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
+	db := setupGORMSqlite(t, &TestModel{})
+	repo := NewGenericRepository[TestModel, uint](db)
+
+	nonExistentID := uint(9999)
+
+	err := repo.Delete(nonExistentID, true)
+	if err == nil {
+		t.Fatalf("Expected an error when deleting a non-existent item, but got none")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("Expected 'record not found' error, but got: %v", err)
+	}
+}
+
+func TestGenericRepository_Get_DBError(t *testing.T) {
+	db := setupGORMSqlite(t, &TestModel{})
+	repo := NewGenericRepository[TestModel, uint](db)
+
+	// Create a model in the DB
+	model := TestModel{Email: "error@test.com"}
+	_, err := repo.Create(model)
+	if err != nil {
+		t.Fatalf("Failed to create test model: %v", err)
+	}
+
+	sqlDB, _ := db.DB()
+	sqlDB.Close()
+
+	_, err = repo.Get(model.ID, "")
+	if err == nil {
+		t.Fatalf("Expected an error due to DB failure, but got none")
+	}
+}
+
+func TestGenericRepository_Get_WithPreload(t *testing.T) {
+	db := setupGORMSqlite(t, &TestModelPreload{}, &OrdersModel{})
+	repo := NewGenericRepository[TestModelPreload, uint](db)
+
+	user := TestModelPreload{Email: "user@test.com"}
+	err := db.Create(&user).Error
+	if err != nil {
+		t.Fatalf("Unexpected error creating user: %v", err)
+	}
+
+	order := OrdersModel{OrderName: "Test Order", UserID: user.ID}
+	err = db.Create(&order).Error
+	if err != nil {
+		t.Fatalf("Unexpected error creating order: %v", err)
+	}
+
+	result, err := repo.Get(user.ID, "Orders")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if len(result.Orders) == 0 {
+		t.Fatalf("Expected preloaded orders, but got none")
+	}
+
+	if result.Orders[0].OrderName != "Test Order" {
+		t.Fatalf("Expected order name 'Test Order', but got %v", result.Orders[0].OrderName)
+	}
+}
+
+func TestGenericRepository_Delete_StringID(t *testing.T) {
+	db := setupGORMSqlite(t, &TestModelWithStringID{})
+	repo := NewGenericRepository[TestModelWithStringID, string](db)
+
+	model := TestModelWithStringID{ID: "abc123", Email: "test@test.com"}
+	err := db.Create(&model).Error
+	if err != nil {
+		t.Fatalf("Unexpected error creating model: %v", err)
+	}
+
+	err = repo.Delete(model.ID, false)
+	if err != nil {
+		t.Fatalf("Unexpected error during delete: %v", err)
+	}
+
+	var deletedModel TestModelWithStringID
+	result := db.First(&deletedModel, "id = ?", model.ID)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		t.Fatalf("Expected record to be deleted, but got unexpected error: %v", result.Error)
 	}
 }

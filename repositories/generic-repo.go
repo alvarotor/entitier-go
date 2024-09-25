@@ -58,12 +58,13 @@ func (r *genericRepository[T, X]) Get(id X, preload string) (*T, error) {
 	if len(preload) > 0 {
 		result = result.Preload(preload)
 	}
-	result = result.First(&model, "ID = ?", id)
+	result = result.First(model, "ID = ?", id)
+
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return model, gorm.ErrRecordNotFound
+		return nil, gorm.ErrRecordNotFound // Return nil when not found
 	}
 	if result.Error != nil {
-		return model, result.Error
+		return nil, result.Error // Ensure that an error returns nil as well
 	}
 
 	return model, nil
