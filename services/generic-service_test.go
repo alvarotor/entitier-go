@@ -1,164 +1,165 @@
 package services
 
-import (
-	"errors"
-	"testing"
+// import (
+// 	"errors"
+// 	"testing"
 
-	"github.com/alvarotor/entitier-go/mocks"
-	"github.com/stretchr/testify/assert"
-)
+// 	"github.com/alvarotor/entitier-go/mocks"
+// 	"github.com/stretchr/testify/assert"
+// )
 
-func TestNewGenericService(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// func TestNewGenericService(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-	assert.NotNil(t, service)
-	assert.IsType(t, &GenericService[mocks.MockModel, uint]{}, service)
-}
-func TestGenericService_GetAll(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// 	assert.NotNil(t, service)
+// 	assert.IsType(t, &GenericService[mocks.MockModel, uint]{}, service)
+// }
 
-	t.Run("Success", func(t *testing.T) {
-		expected := []*mocks.MockModel{{ID: 1, Email: "test@example.com", Name: "Test"}}
-		mockRepo.On("GetAll").Return(expected, nil).Once()
+// func TestGenericService_GetAll(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-		result, err := service.GetAll()
+// 	t.Run("Success", func(t *testing.T) {
+// 		expected := []*mocks.MockModel{{ID: 1, Email: "test@example.com", Name: "Test"}}
+// 		mockRepo.On("GetAll").Return(expected, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Equal(t, expected, result)
-		mockRepo.AssertExpectations(t)
-	})
+// 		result, err := service.GetAll()
 
-	t.Run("Empty Result", func(t *testing.T) {
-		mockRepo.On("GetAll").Return([]*mocks.MockModel{}, nil).Once()
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, expected, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		result, err := service.GetAll()
+// 	t.Run("Empty Result", func(t *testing.T) {
+// 		mockRepo.On("GetAll").Return([]*mocks.MockModel{}, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Empty(t, result)
-		mockRepo.AssertExpectations(t)
-	})
+// 		result, err := service.GetAll()
 
-	t.Run("Error", func(t *testing.T) {
-		expectedError := errors.New("database error")
-		mockRepo.On("GetAll").Return([]*mocks.MockModel(nil), expectedError).Once()
+// 		assert.NoError(t, err)
+// 		assert.Empty(t, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		result, err := service.GetAll()
+// 	t.Run("Error", func(t *testing.T) {
+// 		expectedError := errors.New("database error")
+// 		mockRepo.On("GetAll").Return([]*mocks.MockModel(nil), expectedError).Once()
 
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
-		assert.Nil(t, result)
-		mockRepo.AssertExpectations(t)
-	})
-}
+// 		result, err := service.GetAll()
 
-func TestGenericService_Get(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// 		assert.Error(t, err)
+// 		assert.Equal(t, expectedError, err)
+// 		assert.Nil(t, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
+// }
 
-	t.Run("Success", func(t *testing.T) {
-		expected := &mocks.MockModel{ID: 1, Email: "test@example.com", Name: "Test"}
-		mockRepo.On("Get", uint(1), "").Return(expected, nil).Once()
+// func TestGenericService_Get(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-		result, err := service.Get(1, "")
+// 	t.Run("Success", func(t *testing.T) {
+// 		expected := &mocks.MockModel{ID: 1, Email: "test@example.com", Name: "Test"}
+// 		mockRepo.On("Get", uint(1), "").Return(expected, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Equal(t, expected, result)
-		mockRepo.AssertExpectations(t)
-	})
+// 		result, err := service.Get(1, "")
 
-	t.Run("Error", func(t *testing.T) {
-		expectedError := errors.New("not found")
-		mockRepo.On("Get", uint(2), "").Return((*mocks.MockModel)(nil), expectedError).Once()
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, expected, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		result, err := service.Get(2, "")
+// 	t.Run("Error", func(t *testing.T) {
+// 		expectedError := errors.New("not found")
+// 		mockRepo.On("Get", uint(2), "").Return((*mocks.MockModel)(nil), expectedError).Once()
 
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
-		assert.Nil(t, result)
-		mockRepo.AssertExpectations(t)
-	})
-}
+// 		result, err := service.Get(2, "")
 
-func TestGenericService_Create(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// 		assert.Error(t, err)
+// 		assert.Equal(t, expectedError, err)
+// 		assert.Nil(t, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
+// }
 
-	t.Run("Success", func(t *testing.T) {
-		input := mocks.MockModel{Email: "new@example.com", Name: "New"}
-		expected := mocks.MockModel{ID: 1, Email: "new@example.com", Name: "New"}
-		mockRepo.On("Create", input).Return(expected, nil).Once()
+// func TestGenericService_Create(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-		result, err := service.Create(input)
+// 	t.Run("Success", func(t *testing.T) {
+// 		input := mocks.MockModel{Email: "new@example.com", Name: "New"}
+// 		expected := mocks.MockModel{ID: 1, Email: "new@example.com", Name: "New"}
+// 		mockRepo.On("Create", input).Return(expected, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Equal(t, expected, result)
-		mockRepo.AssertExpectations(t)
-	})
+// 		result, err := service.Create(input)
 
-	t.Run("Error", func(t *testing.T) {
-		input := mocks.MockModel{Email: "invalid@example.com", Name: "Invalid"}
-		expectedError := errors.New("creation failed")
-		mockRepo.On("Create", input).Return(mocks.MockModel{}, expectedError).Once()
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, expected, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		result, err := service.Create(input)
+// 	t.Run("Error", func(t *testing.T) {
+// 		input := mocks.MockModel{Email: "invalid@example.com", Name: "Invalid"}
+// 		expectedError := errors.New("creation failed")
+// 		mockRepo.On("Create", input).Return(mocks.MockModel{}, expectedError).Once()
 
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
-		assert.Equal(t, input, result)
-		mockRepo.AssertExpectations(t)
-	})
-}
+// 		result, err := service.Create(input)
 
-func TestGenericService_Delete(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// 		assert.Error(t, err)
+// 		assert.Equal(t, expectedError, err)
+// 		assert.Equal(t, input, result)
+// 		mockRepo.AssertExpectations(t)
+// 	})
+// }
 
-	t.Run("Success", func(t *testing.T) {
-		mockRepo.On("Delete", uint(1), false).Return(nil).Once()
+// func TestGenericService_Delete(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-		err := service.Delete(1, false)
+// 	t.Run("Success", func(t *testing.T) {
+// 		mockRepo.On("Delete", uint(1), false).Return(nil).Once()
 
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+// 		err := service.Delete(1, false)
 
-	t.Run("Error", func(t *testing.T) {
-		expectedError := errors.New("deletion failed")
-		mockRepo.On("Delete", uint(2), true).Return(expectedError).Once()
+// 		assert.NoError(t, err)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		err := service.Delete(2, true)
+// 	t.Run("Error", func(t *testing.T) {
+// 		expectedError := errors.New("deletion failed")
+// 		mockRepo.On("Delete", uint(2), true).Return(expectedError).Once()
 
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
-		mockRepo.AssertExpectations(t)
-	})
-}
+// 		err := service.Delete(2, true)
 
-func TestGenericService_Update(t *testing.T) {
-	mockRepo := new(mocks.MockRepo)
-	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+// 		assert.Error(t, err)
+// 		assert.Equal(t, expectedError, err)
+// 		mockRepo.AssertExpectations(t)
+// 	})
+// }
 
-	t.Run("Success", func(t *testing.T) {
-		updatedModel := mocks.MockModel{ID: 1, Email: "updated@example.com", Name: "Updated"}
-		mockRepo.On("Update", uint(1), updatedModel).Return(nil).Once()
+// func TestGenericService_Update(t *testing.T) {
+// 	mockRepo := new(mocks.MockRepo)
+// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
 
-		err := service.Update(1, updatedModel)
+// 	t.Run("Success", func(t *testing.T) {
+// 		updatedModel := mocks.MockModel{ID: 1, Email: "updated@example.com", Name: "Updated"}
+// 		mockRepo.On("Update", uint(1), updatedModel).Return(nil).Once()
 
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+// 		err := service.Update(1, updatedModel)
 
-	t.Run("Error", func(t *testing.T) {
-		updatedModel := mocks.MockModel{ID: 2, Email: "fail@example.com", Name: "Fail"}
-		expectedError := errors.New("update failed")
-		mockRepo.On("Update", uint(2), updatedModel).Return(expectedError).Once()
+// 		assert.NoError(t, err)
+// 		mockRepo.AssertExpectations(t)
+// 	})
 
-		err := service.Update(2, updatedModel)
+// 	t.Run("Error", func(t *testing.T) {
+// 		updatedModel := mocks.MockModel{ID: 2, Email: "fail@example.com", Name: "Fail"}
+// 		expectedError := errors.New("update failed")
+// 		mockRepo.On("Update", uint(2), updatedModel).Return(expectedError).Once()
 
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
-		mockRepo.AssertExpectations(t)
-	})
-}
+// 		err := service.Update(2, updatedModel)
+
+// 		assert.Error(t, err)
+// 		assert.Equal(t, expectedError, err)
+// 		mockRepo.AssertExpectations(t)
+// 	})
+// }

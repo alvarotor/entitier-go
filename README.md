@@ -80,6 +80,18 @@ userService := services.NewGenericService[User, uint](userRepo)
 users, err := userService.GetAll()
 ```
 
+## Test
+
+Test have been done with `mockery` and installed with `sudo apt install mockery`. Command: `mockery --all --with-expecter`.
+To test fully coverage:
+
+```sh
+go test -v -coverprofile cover.out ./...
+go tool cover -html cover.out -o cover.html
+```
+
+And open the `cover.html` file in your browser.
+
 ## Contributions
 
 Contributions to improve the generic repository and service implementations or to add new features are welcome. Please submit a pull request or open an issue to discuss proposed changes.

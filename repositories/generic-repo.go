@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/alvarotor/entitier-go/models"
 	"gorm.io/gorm"
@@ -18,6 +19,11 @@ func NewGenericRepository[T any, X string | uint](db *gorm.DB) IGenericRepo[T, X
 }
 
 func (r *genericRepository[T, X]) Create(model T) (T, error) {
+	// Use reflection to check if model is empty
+	if reflect.DeepEqual(model, reflect.Zero(reflect.TypeOf(model)).Interface()) {
+		return model, models.ErrModelCannotBeEmpty
+	}
+
 	result := r.DB.Create(&model)
 
 	if result.Error != nil {
@@ -33,17 +39,17 @@ func (r *genericRepository[T, X]) Create(model T) (T, error) {
 	return model, nil
 }
 
-func (r *genericRepository[T, X]) GetAll() ([]*T, error) {
-	model := []*T{}
-	result := r.DB.Find(&model)
-	if result.RowsAffected == 0 {
-		return model, models.ErrNotFound
-	}
+func (r genericRepository[T, X]) GetAll() ([]*T, error) {
+	var items []*T
+	result := r.DB.Find(&items)
 	if result.Error != nil {
-		return model, result.Error
+		return items, result.Error
+	}
+	if len(items) == 0 {
+		return items, models.ErrNotFound // Assuming models.ErrNotFound is used for not found
 	}
 
-	return model, nil
+	return items, nil
 }
 
 func (r *genericRepository[T, X]) Get(id X, preload string) (*T, error) {
@@ -73,7 +79,8 @@ func (r *genericRepository[T, X]) Update(id X, amended T) error {
 		return result.Error
 	}
 
-	result = r.DB.Save(&amended)
+	// Ensure that the updated entity keeps the same ID
+	result = r.DB.Model(&existing).Updates(amended)
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
