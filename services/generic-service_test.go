@@ -1,165 +1,231 @@
-package services
+package services_test
 
-// import (
-// 	"errors"
-// 	"testing"
+import (
+	"errors"
+	"testing"
 
-// 	"github.com/alvarotor/entitier-go/mocks"
-// 	"github.com/stretchr/testify/assert"
-// )
+	"github.com/alvarotor/entitier-go/services"
+	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
+)
 
-// func TestNewGenericService(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+type TestModel struct {
+	ID    uint   `gorm:"primaryKey"`
+	Email string `gorm:"unique"`
+}
 
-// 	assert.NotNil(t, service)
-// 	assert.IsType(t, &GenericService[mocks.MockModel, uint]{}, service)
-// }
+// Mock Repo Struct
+type MockRepo struct {
+	data        []*TestModel
+	errOnGet    error
+	errOnGetAll error
+	errOnCreate error
+	errOnDelete error
+	errOnUpdate error
+}
 
-// func TestGenericService_GetAll(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+func (m *MockRepo) GetAll() ([]*TestModel, error) {
+	if m.errOnGetAll != nil {
+		return nil, m.errOnGetAll
+	}
+	return m.data, nil
+}
 
-// 	t.Run("Success", func(t *testing.T) {
-// 		expected := []*mocks.MockModel{{ID: 1, Email: "test@example.com", Name: "Test"}}
-// 		mockRepo.On("GetAll").Return(expected, nil).Once()
+func (m *MockRepo) Get(ID uint, preload string) (*TestModel, error) {
+	if m.errOnGet != nil {
+		return nil, m.errOnGet
+	}
+	for _, model := range m.data {
+		if model.ID == ID {
+			return model, nil
+		}
+	}
+	return nil, gorm.ErrRecordNotFound
+}
 
-// 		result, err := service.GetAll()
+func (m *MockRepo) Create(data TestModel) (TestModel, error) {
+	if m.errOnCreate != nil {
+		return data, m.errOnCreate
+	}
+	m.data = append(m.data, &data)
+	return data, nil
+}
 
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, expected, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+func (m *MockRepo) Delete(ID uint, permanently bool) error {
+	if m.errOnDelete != nil {
+		return m.errOnDelete
+	}
+	for i, model := range m.data {
+		if model.ID == ID {
+			m.data = append(m.data[:i], m.data[i+1:]...)
+			return nil
+		}
+	}
+	return gorm.ErrRecordNotFound
+}
 
-// 	t.Run("Empty Result", func(t *testing.T) {
-// 		mockRepo.On("GetAll").Return([]*mocks.MockModel{}, nil).Once()
+func (m *MockRepo) Update(ID uint, amended TestModel) error {
+	if m.errOnUpdate != nil {
+		return m.errOnUpdate
+	}
+	for _, model := range m.data {
+		if model.ID == ID {
+			model.Email = amended.Email
+			return nil
+		}
+	}
+	return gorm.ErrRecordNotFound
+}
 
-// 		result, err := service.GetAll()
+// Test file
 
-// 		assert.NoError(t, err)
-// 		assert.Empty(t, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+func TestGenericService_GetAll_Success(t *testing.T) {
+	mockRepo := &MockRepo{
+		data: []*TestModel{
+			{ID: 1, Email: "test1@example.com"},
+			{ID: 2, Email: "test2@example.com"},
+		},
+	}
 
-// 	t.Run("Error", func(t *testing.T) {
-// 		expectedError := errors.New("database error")
-// 		mockRepo.On("GetAll").Return([]*mocks.MockModel(nil), expectedError).Once()
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	result, err := service.GetAll()
 
-// 		result, err := service.GetAll()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(result))
+	assert.Equal(t, "test1@example.com", result[0].Email)
+}
 
-// 		assert.Error(t, err)
-// 		assert.Equal(t, expectedError, err)
-// 		assert.Nil(t, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
-// }
+func TestGenericService_GetAll_Empty(t *testing.T) {
+	mockRepo := &MockRepo{
+		data: []*TestModel{},
+	}
 
-// func TestGenericService_Get(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	result, err := service.GetAll()
 
-// 	t.Run("Success", func(t *testing.T) {
-// 		expected := &mocks.MockModel{ID: 1, Email: "test@example.com", Name: "Test"}
-// 		mockRepo.On("Get", uint(1), "").Return(expected, nil).Once()
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+}
 
-// 		result, err := service.Get(1, "")
+func TestGenericService_GetAll_Error(t *testing.T) {
+	mockRepo := &MockRepo{
+		errOnGetAll: errors.New("DB error"),
+	}
 
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, expected, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	result, err := service.GetAll()
 
-// 	t.Run("Error", func(t *testing.T) {
-// 		expectedError := errors.New("not found")
-// 		mockRepo.On("Get", uint(2), "").Return((*mocks.MockModel)(nil), expectedError).Once()
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, "DB error", err.Error())
+}
 
-// 		result, err := service.Get(2, "")
+func TestGenericService_Get_Success(t *testing.T) {
+	mockRepo := &MockRepo{
+		data: []*TestModel{
+			{ID: 1, Email: "test1@example.com"},
+		},
+	}
 
-// 		assert.Error(t, err)
-// 		assert.Equal(t, expectedError, err)
-// 		assert.Nil(t, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
-// }
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	result, err := service.Get(1, "")
 
-// func TestGenericService_Create(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+	assert.NoError(t, err)
+	assert.Equal(t, "test1@example.com", result.Email)
+}
 
-// 	t.Run("Success", func(t *testing.T) {
-// 		input := mocks.MockModel{Email: "new@example.com", Name: "New"}
-// 		expected := mocks.MockModel{ID: 1, Email: "new@example.com", Name: "New"}
-// 		mockRepo.On("Create", input).Return(expected, nil).Once()
+func TestGenericService_Get_Error(t *testing.T) {
+	mockRepo := &MockRepo{
+		errOnGet: gorm.ErrRecordNotFound,
+	}
 
-// 		result, err := service.Create(input)
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	result, err := service.Get(1, "")
 
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, expected, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
 
-// 	t.Run("Error", func(t *testing.T) {
-// 		input := mocks.MockModel{Email: "invalid@example.com", Name: "Invalid"}
-// 		expectedError := errors.New("creation failed")
-// 		mockRepo.On("Create", input).Return(mocks.MockModel{}, expectedError).Once()
+func TestGenericService_Create_Success(t *testing.T) {
+	mockRepo := &MockRepo{}
+	service := services.NewGenericService[TestModel, uint](mockRepo)
 
-// 		result, err := service.Create(input)
+	model := TestModel{Email: "test1@example.com"}
+	result, err := service.Create(model)
 
-// 		assert.Error(t, err)
-// 		assert.Equal(t, expectedError, err)
-// 		assert.Equal(t, input, result)
-// 		mockRepo.AssertExpectations(t)
-// 	})
-// }
+	assert.NoError(t, err)
+	assert.Equal(t, "test1@example.com", result.Email)
+	assert.Equal(t, 1, len(mockRepo.data))
+}
 
-// func TestGenericService_Delete(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+func TestGenericService_Create_Error(t *testing.T) {
+	mockRepo := &MockRepo{
+		errOnCreate: errors.New("DB error"),
+	}
 
-// 	t.Run("Success", func(t *testing.T) {
-// 		mockRepo.On("Delete", uint(1), false).Return(nil).Once()
+	service := services.NewGenericService[TestModel, uint](mockRepo)
 
-// 		err := service.Delete(1, false)
+	model := TestModel{Email: "test1@example.com"}
+	result, err := service.Create(model)
 
-// 		assert.NoError(t, err)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+	assert.Error(t, err)
+	assert.Equal(t, model, result)
+	assert.Equal(t, "DB error", err.Error())
+}
 
-// 	t.Run("Error", func(t *testing.T) {
-// 		expectedError := errors.New("deletion failed")
-// 		mockRepo.On("Delete", uint(2), true).Return(expectedError).Once()
+func TestGenericService_Delete_Success(t *testing.T) {
+	mockRepo := &MockRepo{
+		data: []*TestModel{
+			{ID: 1, Email: "test1@example.com"},
+		},
+	}
 
-// 		err := service.Delete(2, true)
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	err := service.Delete(1, true)
 
-// 		assert.Error(t, err)
-// 		assert.Equal(t, expectedError, err)
-// 		mockRepo.AssertExpectations(t)
-// 	})
-// }
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(mockRepo.data))
+}
 
-// func TestGenericService_Update(t *testing.T) {
-// 	mockRepo := new(mocks.MockRepo)
-// 	service := NewGenericService[mocks.MockModel, uint](mockRepo)
+func TestGenericService_Delete_Error(t *testing.T) {
+	mockRepo := &MockRepo{
+		errOnDelete: gorm.ErrRecordNotFound,
+	}
 
-// 	t.Run("Success", func(t *testing.T) {
-// 		updatedModel := mocks.MockModel{ID: 1, Email: "updated@example.com", Name: "Updated"}
-// 		mockRepo.On("Update", uint(1), updatedModel).Return(nil).Once()
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+	err := service.Delete(1, true)
 
-// 		err := service.Update(1, updatedModel)
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
 
-// 		assert.NoError(t, err)
-// 		mockRepo.AssertExpectations(t)
-// 	})
+func TestGenericService_Update_Success(t *testing.T) {
+	mockRepo := &MockRepo{
+		data: []*TestModel{
+			{ID: 1, Email: "test1@example.com"},
+		},
+	}
 
-// 	t.Run("Error", func(t *testing.T) {
-// 		updatedModel := mocks.MockModel{ID: 2, Email: "fail@example.com", Name: "Fail"}
-// 		expectedError := errors.New("update failed")
-// 		mockRepo.On("Update", uint(2), updatedModel).Return(expectedError).Once()
+	service := services.NewGenericService[TestModel, uint](mockRepo)
 
-// 		err := service.Update(2, updatedModel)
+	updatedModel := TestModel{Email: "updated@example.com"}
+	err := service.Update(1, updatedModel)
 
-// 		assert.Error(t, err)
-// 		assert.Equal(t, expectedError, err)
-// 		mockRepo.AssertExpectations(t)
-// 	})
-// }
+	assert.NoError(t, err)
+	assert.Equal(t, "updated@example.com", mockRepo.data[0].Email)
+}
+
+func TestGenericService_Update_Error(t *testing.T) {
+	mockRepo := &MockRepo{
+		errOnUpdate: gorm.ErrRecordNotFound,
+	}
+
+	service := services.NewGenericService[TestModel, uint](mockRepo)
+
+	updatedModel := TestModel{Email: "updated@example.com"}
+	err := service.Update(1, updatedModel)
+
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+}
