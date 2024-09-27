@@ -7,15 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alvarotor/entitier-go/mocks"
+
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
-
-type TestModel struct {
-	ID    uint   `gorm:"primaryKey"`
-	Email string `gorm:"unique"`
-}
 
 type TestModelWithVariousFields struct {
 	ID       uint   `gorm:"primaryKey"`
@@ -43,7 +40,7 @@ type TestModelWithStringID struct {
 }
 
 func TestGenericRepository_Create_WithVariousFields(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModelWithVariousFields{})
+	db := mocks.SetupGORMSqlite(t, &TestModelWithVariousFields{})
 	repo := NewGenericRepository[TestModelWithVariousFields, uint](db)
 
 	model := TestModelWithVariousFields{
@@ -57,29 +54,11 @@ func TestGenericRepository_Create_WithVariousFields(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// setupGORMSqlite creates an in-memory SQLite database and returns a *gorm.DB connection
-func setupGORMSqlite(t *testing.T, models ...interface{}) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to connect database: %v", err)
-	}
-
-	// Migrate the schema for provided models
-	for _, model := range models {
-		err = db.AutoMigrate(model)
-		if err != nil {
-			t.Fatalf("failed to migrate database schema for model %v: %v", model, err)
-		}
-	}
-
-	return db
-}
-
 func TestGenericRepository_Create(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "Test"}
+	model := mocks.TestModel{Email: "Test"}
 
 	// Act
 	createdModel, err := repo.Create(model)
@@ -90,12 +69,12 @@ func TestGenericRepository_Create(t *testing.T) {
 }
 
 func TestGenericRepository_GetAll(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Insert some records to test
-	db.Create(&TestModel{Email: "Test1"})
-	db.Create(&TestModel{Email: "Test2"})
+	db.Create(&mocks.TestModel{Email: "Test1"})
+	db.Create(&mocks.TestModel{Email: "Test2"})
 
 	// Act
 	result, err := repo.GetAll()
@@ -106,11 +85,11 @@ func TestGenericRepository_GetAll(t *testing.T) {
 }
 
 func TestGenericRepository_Get(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Insert a record to test
-	db.Create(&TestModel{Email: "Test"})
+	db.Create(&mocks.TestModel{Email: "Test"})
 
 	// Act
 	result, err := repo.Get(1, "")
@@ -121,13 +100,13 @@ func TestGenericRepository_Get(t *testing.T) {
 }
 
 func TestGenericRepository_Update(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Insert a record to test
-	db.Create(&TestModel{Email: "OldEmail"})
+	db.Create(&mocks.TestModel{Email: "OldEmail"})
 
-	updatedModel := TestModel{Email: "NewEmail"}
+	updatedModel := mocks.TestModel{Email: "NewEmail"}
 
 	// Act
 	err := repo.Update(1, updatedModel)
@@ -135,17 +114,17 @@ func TestGenericRepository_Update(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var fetchedModel TestModel
+	var fetchedModel mocks.TestModel
 	db.First(&fetchedModel, 1)
 	assert.Equal(t, "NewEmail", fetchedModel.Email)
 }
 
 func TestGenericRepository_Delete(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Insert a record to test
-	db.Create(&TestModel{Email: "ToDelete"})
+	db.Create(&mocks.TestModel{Email: "ToDelete"})
 
 	// Act
 	err := repo.Delete(1, false)
@@ -153,17 +132,17 @@ func TestGenericRepository_Delete(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result TestModel
+	var result mocks.TestModel
 	tx := db.First(&result, 1)
 	assert.Error(t, tx.Error) // Should return not found
 }
 
 func TestGenericRepository_Delete_Permanently(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Insert a record to test
-	db.Create(&TestModel{Email: "ToDelete"})
+	db.Create(&mocks.TestModel{Email: "ToDelete"})
 
 	// Act
 	err := repo.Delete(1, true)
@@ -171,16 +150,16 @@ func TestGenericRepository_Delete_Permanently(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result TestModel
+	var result mocks.TestModel
 	tx := db.Unscoped().First(&result, 1)
 	assert.Error(t, tx.Error) // Should return not found
 }
 
 func TestGenericRepository_Create_Error(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "Test"}
+	model := mocks.TestModel{Email: "Test"}
 
 	// Insert the same record twice to trigger a unique constraint violation
 	db.Create(&model)
@@ -193,8 +172,8 @@ func TestGenericRepository_Create_Error(t *testing.T) {
 }
 
 func TestGenericRepository_GetAll_Empty(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Act
 	result, err := repo.GetAll()
@@ -206,8 +185,8 @@ func TestGenericRepository_GetAll_Empty(t *testing.T) {
 }
 
 func TestGenericRepository_Get_NotFound(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to get a record that doesn't exist
 	_, err := repo.Get(999, "")
@@ -217,8 +196,8 @@ func TestGenericRepository_Get_NotFound(t *testing.T) {
 }
 
 func TestGenericRepository_Delete_NotFound(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to delete a record that doesn't exist
 	err := repo.Delete(999, false)
@@ -228,8 +207,8 @@ func TestGenericRepository_Delete_NotFound(t *testing.T) {
 }
 
 func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to permanently delete a record that doesn't exist
 	err := repo.Delete(999, true)
@@ -239,10 +218,10 @@ func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
 }
 
 func TestGenericRepository_Update_Error(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	nonExistentModel := TestModel{Email: "NonExistent"}
+	nonExistentModel := mocks.TestModel{Email: "NonExistent"}
 
 	// Try updating a non-existent record
 	err := repo.Update(999, nonExistentModel)
@@ -253,15 +232,15 @@ func TestGenericRepository_Update_Error(t *testing.T) {
 }
 
 func TestGenericRepository_Create_NoRowsAffected(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Create and rollback within a transaction
 	tx := db.Begin()
 	defer tx.Rollback() // Ensure rollback happens even if the test fails
 
 	// Create a model within the transaction
-	model := TestModel{Email: "TransactionalModel"}
+	model := mocks.TestModel{Email: "TransactionalModel"}
 	tx.Create(&model)
 
 	// Rollback the transaction so no changes are committed
@@ -276,24 +255,24 @@ func TestGenericRepository_Create_NoRowsAffected(t *testing.T) {
 }
 
 func TestGenericRepository_Create_InvalidData(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	invalidModel := TestModel{Email: ""}
+	invalidModel := mocks.TestModel{Email: ""}
 	_, err := repo.Create(invalidModel)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "model cannot be empty")
 }
 
 func TestGenericRepository_Update_Partial(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "InitialEmail"}
+	model := mocks.TestModel{Email: "InitialEmail"}
 	createdModel, err := repo.Create(model)
 	assert.NoError(t, err)
 
-	updatedModel := TestModel{Email: "UpdatedEmail"}
+	updatedModel := mocks.TestModel{Email: "UpdatedEmail"}
 	err = repo.Update(createdModel.ID, updatedModel)
 	assert.NoError(t, err)
 
@@ -303,10 +282,10 @@ func TestGenericRepository_Update_Partial(t *testing.T) {
 }
 
 func TestGenericRepository_SoftDelete(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "ToDelete"}
+	model := mocks.TestModel{Email: "ToDelete"}
 	createdModel, err := repo.Create(model)
 	assert.NoError(t, err)
 
@@ -319,11 +298,11 @@ func TestGenericRepository_SoftDelete(t *testing.T) {
 }
 
 func TestGenericRepository_PermanentDelete_Success(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Create a model
-	model := TestModel{Email: "ToBeDeleted"}
+	model := mocks.TestModel{Email: "ToBeDeleted"}
 	createdModel, _ := repo.Create(model)
 
 	// Permanent delete the model
@@ -331,7 +310,7 @@ func TestGenericRepository_PermanentDelete_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify the record is deleted
-	var result TestModel
+	var result mocks.TestModel
 	err = db.Unscoped().First(&result, createdModel.ID).Error
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "record not found")
@@ -356,12 +335,12 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 	sqlDB.SetMaxIdleConns(1)    // Only allow 1 idle connection
 
 	// Ensure the migration happens
-	err = db.AutoMigrate(&TestModel{})
+	err = db.AutoMigrate(&mocks.TestModel{})
 	if err != nil {
 		t.Fatalf("failed to migrate database schema: %v", err)
 	}
 
-	repo := NewGenericRepository[TestModel, uint](db)
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	var wg sync.WaitGroup
 	concurrency := 10
@@ -374,7 +353,7 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 			mu.Lock() // Lock the mutex before accessing the database
 			defer mu.Unlock()
 
-			model := TestModel{Email: fmt.Sprintf("test%d@example.com", i)}
+			model := mocks.TestModel{Email: fmt.Sprintf("test%d@example.com", i)}
 			_, err := repo.Create(model)
 			assert.NoError(t, err)
 		}(i)
@@ -384,7 +363,7 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 
 	// Ensure that all records were created in the database
 	var count int64
-	err = db.Model(&TestModel{}).Count(&count).Error
+	err = db.Model(&mocks.TestModel{}).Count(&count).Error
 	if err != nil {
 		t.Fatalf("Error counting records: %v", err)
 	}
@@ -394,11 +373,11 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 }
 
 func TestGenericRepository_GetAll_LargeDataSet(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	for i := 0; i < 1000; i++ {
-		db.Create(&TestModel{Email: fmt.Sprintf("test%d@example.com", i)})
+		db.Create(&mocks.TestModel{Email: fmt.Sprintf("test%d@example.com", i)})
 	}
 
 	// Act
@@ -409,19 +388,19 @@ func TestGenericRepository_GetAll_LargeDataSet(t *testing.T) {
 	assert.Equal(t, 1000, len(result))
 }
 func TestGenericRepository_Create_SpecialCharacters(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "!@#$%^&*()_+-=~`"}
+	model := mocks.TestModel{Email: "!@#$%^&*()_+-=~`"}
 	_, err := repo.Create(model)
 	assert.NoError(t, err)
 }
 
 func TestGenericRepository_Delete_Unscoped(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "ToBeDeleted"}
+	model := mocks.TestModel{Email: "ToBeDeleted"}
 	createdModel, err := repo.Create(model)
 	if err != nil {
 		t.Fatalf("Failed to create model: %v", err)
@@ -432,7 +411,7 @@ func TestGenericRepository_Delete_Unscoped(t *testing.T) {
 		t.Fatalf("Failed to delete model permanently: %v", err)
 	}
 
-	var result TestModel
+	var result mocks.TestModel
 	err = db.Unscoped().First(&result, createdModel.ID).Error
 	if err == nil {
 		t.Errorf("Expected record to be deleted, but it still exists")
@@ -442,10 +421,10 @@ func TestGenericRepository_Delete_Unscoped(t *testing.T) {
 }
 
 func TestGenericRepository_Delete_DBError(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
-	model := TestModel{Email: "error@test.com"}
+	model := mocks.TestModel{Email: "error@test.com"}
 	_, err := repo.Create(model)
 	if err != nil {
 		t.Fatalf("Failed to set up test data: %v", err)
@@ -460,8 +439,8 @@ func TestGenericRepository_Delete_DBError(t *testing.T) {
 	}
 }
 func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	nonExistentID := uint(9999)
 
@@ -474,11 +453,11 @@ func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
 }
 
 func TestGenericRepository_Get_DBError(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModel{})
-	repo := NewGenericRepository[TestModel, uint](db)
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Create a model in the DB
-	model := TestModel{Email: "error@test.com"}
+	model := mocks.TestModel{Email: "error@test.com"}
 	_, err := repo.Create(model)
 	if err != nil {
 		t.Fatalf("Failed to create test model: %v", err)
@@ -494,7 +473,7 @@ func TestGenericRepository_Get_DBError(t *testing.T) {
 }
 
 func TestGenericRepository_Get_WithPreload(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModelPreload{}, &OrdersModel{})
+	db := mocks.SetupGORMSqlite(t, &TestModelPreload{}, &OrdersModel{})
 	repo := NewGenericRepository[TestModelPreload, uint](db)
 
 	user := TestModelPreload{Email: "user@test.com"}
@@ -524,7 +503,7 @@ func TestGenericRepository_Get_WithPreload(t *testing.T) {
 }
 
 func TestGenericRepository_Delete_StringID(t *testing.T) {
-	db := setupGORMSqlite(t, &TestModelWithStringID{})
+	db := mocks.SetupGORMSqlite(t, &TestModelWithStringID{})
 	repo := NewGenericRepository[TestModelWithStringID, string](db)
 
 	model := TestModelWithStringID{ID: "abc123", Email: "test@test.com"}

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/alvarotor/entitier-go/logger"
@@ -150,10 +149,8 @@ func (u *controllerGeneric[T, X]) Update(c *gin.Context, model T) {
 	}
 
 	err := u.svcT.Update(id, model)
-	log.Println("cojones")
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Println("cimbel")
 			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()}) // Ensure error is a string here
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()}) // Ensure proper string conversion for other errors

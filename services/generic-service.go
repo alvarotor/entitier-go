@@ -32,7 +32,7 @@ func (r *GenericService[T, X]) GetAll() ([]*T, error) {
 func (r *GenericService[T, X]) Get(ID X, preload string) (*T, error) {
 	model, err := r.repo.Get(ID, preload)
 	if err != nil {
-		return model, err
+		return nil, err
 	}
 
 	return model, nil
