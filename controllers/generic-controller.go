@@ -58,13 +58,10 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 		return
 	}
 
-	var id X
-	var ok bool
-
-	id, ok = idInterface.(X)
-	if !ok {
-		u.log.Error(models.ErrIDTypeMismatch.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
+	id, err := utils.ConvertToGenericID[X](idInterface)
+	if err != nil {
+		u.log.Error(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
 
@@ -106,17 +103,14 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 		return
 	}
 
-	var id X
-	var ok bool
-
-	id, ok = idInterface.(X)
-	if !ok {
-		u.log.Error(models.ErrIDTypeMismatch.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
+	id, err := utils.ConvertToGenericID[X](idInterface)
+	if err != nil {
+		u.log.Error(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
 
-	err := u.svcT.Delete(id, true)
+	err = u.svcT.Delete(id, true)
 	if err != nil {
 		u.log.Error(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
@@ -135,17 +129,14 @@ func (u *controllerGeneric[T, X]) Update(c *gin.Context, model T) {
 		return
 	}
 
-	var id X
-	var ok bool
-
-	id, ok = idInterface.(X)
-	if !ok {
-		u.log.Error(models.ErrIDTypeMismatch.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
+	id, err := utils.ConvertToGenericID[X](idInterface)
+	if err != nil {
+		u.log.Error(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
 
-	err := u.svcT.Update(id, model)
+	err = u.svcT.Update(id, model)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()}) // Ensure error is a string here

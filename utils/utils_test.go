@@ -3,6 +3,7 @@ package utils_test
 import (
 	"testing"
 
+	"github.com/alvarotor/entitier-go/models"
 	"github.com/alvarotor/entitier-go/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -71,4 +72,92 @@ func TestGetIDParam_OverflowIDParam(t *testing.T) {
 	// Since it overflows, expecting the raw string
 	assert.IsType(t, "", result, "Expected result to be of type string for overflow")
 	assert.Equal(t, "18446744073709551616", result, "Expected result to be the string representing the large number")
+}
+
+// Tests for ConvertToGenericID
+
+func TestConvertToGenericID(t *testing.T) {
+	t.Run("ValidStringID", func(t *testing.T) {
+		idInterface := "12345"
+		expectedID := "12345"
+
+		id, err := utils.ConvertToGenericID[string](idInterface)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedID, id)
+	})
+
+	t.Run("ValidUintID", func(t *testing.T) {
+		idInterface := uint(12345)
+		expectedID := uint(12345)
+
+		id, err := utils.ConvertToGenericID[uint](idInterface)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedID, id)
+	})
+
+	t.Run("InvalidTypeMismatchString", func(t *testing.T) {
+		idInterface := uint(12345)
+
+		_, err := utils.ConvertToGenericID[string](idInterface)
+
+		assert.Error(t, err)
+		assert.Equal(t, models.ErrIDTypeMismatch, err)
+	})
+
+	t.Run("InvalidTypeMismatchUint", func(t *testing.T) {
+		idInterface := "12345"
+
+		_, err := utils.ConvertToGenericID[uint](idInterface)
+
+		assert.Error(t, err)
+		assert.Equal(t, models.ErrIDTypeMismatch, err)
+	})
+
+	t.Run("NilID", func(t *testing.T) {
+		var idInterface interface{}
+
+		id, err := utils.ConvertToGenericID[string](idInterface)
+
+		assert.Error(t, err)
+		assert.Equal(t, models.ErrIDTypeMismatch, err)
+		assert.Equal(t, "", id) // since X is string, expect empty string as the default zero value
+	})
+
+	t.Run("EmptyStringID", func(t *testing.T) {
+		idInterface := ""
+
+		id, err := utils.ConvertToGenericID[string](idInterface)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", id) // Empty string is still valid as a string ID
+	})
+
+	t.Run("ZeroUintID", func(t *testing.T) {
+		idInterface := uint(0)
+
+		id, err := utils.ConvertToGenericID[uint](idInterface)
+
+		assert.NoError(t, err)
+		assert.Equal(t, uint(0), id) // Zero uint is still valid as a uint ID
+	})
+
+	t.Run("UnsupportedTypeFloat", func(t *testing.T) {
+		idInterface := 123.45
+
+		_, err := utils.ConvertToGenericID[string](idInterface)
+
+		assert.Error(t, err)
+		assert.Equal(t, models.ErrIDTypeMismatch, err)
+	})
+
+	t.Run("UnsupportedTypeBool", func(t *testing.T) {
+		idInterface := true
+
+		_, err := utils.ConvertToGenericID[uint](idInterface)
+
+		assert.Error(t, err)
+		assert.Equal(t, models.ErrIDTypeMismatch, err)
+	})
 }
