@@ -7,4 +7,5 @@ var (
 	ErrDuplicatedKeyEmail = errors.New("duplicated key. Email already exists")
 	ErrModelCannotBeEmpty = errors.New("model cannot be empty")
 	ErrMustProvideValidID = errors.New("must provide valid id")
+	ErrIDTypeMismatch     = errors.New("id type mismatch")
 )

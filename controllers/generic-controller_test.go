@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,52 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type TestModel struct {
-	ID    uint   `gorm:"primaryKey"`
-	Email string `gorm:"unique"`
-}
-
-// Mock Logger
-type MockLogger struct{}
-
-func (m *MockLogger) Info(msg string)  {}
-func (m *MockLogger) Error(msg string) {}
-func (m *MockLogger) Warn(msg string)  {}
-func (m *MockLogger) Debug(msg string) {}
-func (m *MockLogger) Fatal(msg string) {}
-func (m *MockLogger) Trace(msg string) {}
-func (m *MockLogger) Print(msg string) {}
-
-// Mock Service
-type MockService struct {
-	mock.Mock
-}
-
-func (m *MockService) GetAll() ([]*TestModel, error) {
-	args := m.Called()
-	return args.Get(0).([]*TestModel), args.Error(1)
-}
-
-func (m *MockService) Get(ID uint, preload string) (*TestModel, error) {
-	args := m.Called(ID, preload)
-	return args.Get(0).(*TestModel), args.Error(1)
-}
-
-func (m *MockService) Create(data TestModel) (TestModel, error) {
-	args := m.Called(data)
-	return args.Get(0).(TestModel), args.Error(1)
-}
-
-func (m *MockService) Delete(ID uint, permanently bool) error {
-	args := m.Called(ID, permanently)
-	return args.Error(0)
-}
-
-func (m *MockService) Update(ID uint, amended TestModel) error {
-	args := m.Called(ID, amended)
-	return args.Error(0)
-}
-
 // Utility for creating mock gin context
 func CreateMockGinContext() (*gin.Context, *httptest.ResponseRecorder) {
 	w := httptest.NewRecorder()
@@ -70,18 +25,18 @@ func CreateMockGinContext() (*gin.Context, *httptest.ResponseRecorder) {
 
 func TestController_GetAll_Success(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Prepare test data
-	testModels := []*TestModel{
+	testModels := []*mocks.TestModel{
 		{ID: 1, Email: "test1@example.com"},
 		{ID: 2, Email: "test2@example.com"},
 	}
 	mockService.On("GetAll").Return(testModels, nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -103,14 +58,15 @@ func TestController_GetAll_Success(t *testing.T) {
 
 func TestController_GetAll_NotFound(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Simulate a "not found" error
+	mockLogger.On("Error", "no rows found").Return(nil)
 	mockService.On("GetAll").Return(nil, models.ErrNotFound)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -132,14 +88,16 @@ func TestController_GetAll_NotFound(t *testing.T) {
 
 func TestController_GetAll_InternalError(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Simulate a generic internal error
-	mockService.On("GetAll").Return(nil, errors.New("database error"))
+	err := errors.New("database error")
+	mockLogger.On("Error", err.Error()).Return(nil)
+	mockService.On("GetAll").Return(nil, err)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -155,7 +113,7 @@ func TestController_GetAll_InternalError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 	// Assert that the response contains the expected error message
-	expectedBody := `{"err":"database error"}`
+	expectedBody := fmt.Sprintf(`{"err":"%s"}`, err.Error())
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
 
@@ -163,18 +121,18 @@ func TestController_GetAll_InternalError(t *testing.T) {
 
 func TestController_Create_Success(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Test data
-	inputModel := TestModel{Email: "test@example.com"}
-	createdModel := TestModel{ID: 1, Email: "test@example.com"}
+	inputModel := mocks.TestModel{Email: "test@example.com"}
+	createdModel := mocks.TestModel{ID: 1, Email: "test@example.com"}
 
 	// Simulate successful creation
 	mockService.On("Create", inputModel).Return(createdModel, nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -189,17 +147,19 @@ func TestController_Create_Success(t *testing.T) {
 
 func TestController_Create_Failure(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Test data
-	inputModel := TestModel{Email: "test@example.com"}
+	inputModel := mocks.TestModel{Email: "test@example.com"}
 
 	// Simulate creation failure
-	mockService.On("Create", inputModel).Return(inputModel, errors.New("creation error"))
+	err := errors.New("create error")
+	mockLogger.On("Error", err.Error()).Return(nil)
+	mockService.On("Create", inputModel).Return(inputModel, err)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -210,20 +170,20 @@ func TestController_Create_Failure(t *testing.T) {
 	// Assert the result
 	assert.Error(t, err)
 	assert.Equal(t, inputModel, result)
-	assert.Equal(t, "creation error", err.Error())
+	assert.Equal(t, err.Error(), err.Error())
 }
 
 func TestController_Get_Success(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Prepare test data
-	testModel := &TestModel{ID: 1, Email: "test1@example.com"}
+	testModel := &mocks.TestModel{ID: 1, Email: "test1@example.com"}
 	mockService.On("Get", uint(1), "User").Return(testModel, nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -262,14 +222,14 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock service
-			mockService := new(mocks.IGenericService[TestModel, uint])
+			mockService := new(mocks.IGenericService[mocks.TestModel, uint])
 			mockLogger := &mocks.Logger{}
 
 			// Simulate the not found errors
 			mockService.On("Get", uint(1), "User").Return(nil, tt.mockError)
 
 			// Create the controller
-			ctrl := &controllerGeneric[TestModel, uint]{
+			ctrl := &controllerGeneric[mocks.TestModel, uint]{
 				svcT: mockService,
 				log:  mockLogger,
 			}
@@ -291,14 +251,14 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 
 func TestController_Delete_Success(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Simulate successful deletion
 	mockService.On("Delete", uint(1), true).Return(nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -321,14 +281,15 @@ func TestController_Delete_Success(t *testing.T) {
 
 func TestController_Delete_Failure(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Simulate deletion failure
-	mockService.On("Delete", uint(1), true).Return(errors.New("deletion error"))
+	mockLogger.On("Error", models.ErrNotFound.Error()).Return(nil)
+	mockService.On("Delete", uint(1), true).Return(models.ErrNotFound)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -345,23 +306,23 @@ func TestController_Delete_Failure(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 	// Assert that the response contains the expected error message
-	expectedBody := `{"err":"deletion error"}`
+	expectedBody := fmt.Sprintf(`{"err":"%s"}`, models.ErrNotFound.Error())
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
 
 func TestController_Update_Success(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Test data
-	inputModel := TestModel{ID: 1, Email: "updated@example.com"}
+	inputModel := mocks.TestModel{ID: 1, Email: "updated@example.com"}
 
 	// Simulate successful update
 	mockService.On("Update", uint(1), inputModel).Return(nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -384,17 +345,17 @@ func TestController_Update_Success(t *testing.T) {
 
 func TestController_Update_Failure(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Test data
-	inputModel := TestModel{ID: 1, Email: "updated@example.com"}
+	inputModel := mocks.TestModel{ID: 1, Email: "updated@example.com"}
 
 	// Simulate update failure
 	mockService.On("Update", uint(1), inputModel).Return(errors.New("update error"))
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -417,11 +378,13 @@ func TestController_Update_Failure(t *testing.T) {
 
 func TestController_Get_IDParamInvalid(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
+
+	mockLogger.On("Error", models.ErrIDTypeMismatch.Error()).Return(nil)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -442,20 +405,20 @@ func TestController_Get_IDParamInvalid(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 	// Assert that the response contains the expected error message
-	expectedBody := `{"err":"id type mismatch"}`
+	expectedBody := fmt.Sprintf(`{"err":"%s"}`, models.ErrIDTypeMismatch.Error())
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
 
 func TestController_Get_InternalError(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Simulate an internal error in the mock service
 	mockService.On("Get", mock.Anything, "User").Return(nil, errors.New("some internal error"))
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -479,26 +442,30 @@ func TestController_Get_InternalError(t *testing.T) {
 	expectedBody := `{"err":"some internal error"}`
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
+
 func TestController_Get_InvalidOrNilParam(t *testing.T) {
 	tests := []struct {
-		name         string
-		paramKey     string
-		paramValue   string
-		expectedCode int
-		expectedBody string
+		name             string
+		paramKey         string
+		paramValue       string
+		expectedCode     int
+		expectedBody     string
+		expectedLogError string
 	}{
-		{"Missing ID Param", "", "", http.StatusBadRequest, `{"err":"must provide valid id"}`},
-		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, `{"err":"id type mismatch"}`},
+		{"Missing ID Param", "", "", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrMustProvideValidID.Error()), models.ErrMustProvideValidID.Error()},
+		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrIDTypeMismatch.Error()), models.ErrIDTypeMismatch.Error()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock service
-			mockService := new(mocks.IGenericService[TestModel, uint])
-			mockLogger := &MockLogger{}
+			mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+			mockLogger := &mocks.Logger{}
+
+			mockLogger.On("Error", tt.expectedLogError).Return(nil)
 
 			// Create the controller
-			ctrl := &controllerGeneric[TestModel, uint]{
+			ctrl := &controllerGeneric[mocks.TestModel, uint]{
 				svcT: mockService,
 				log:  mockLogger,
 			}
@@ -523,26 +490,30 @@ func TestController_Get_InvalidOrNilParam(t *testing.T) {
 		})
 	}
 }
+
 func TestController_Update_InvalidOrNilParam(t *testing.T) {
 	tests := []struct {
-		name         string
-		paramKey     string
-		paramValue   string
-		expectedCode int
-		expectedBody string
+		name             string
+		paramKey         string
+		paramValue       string
+		expectedCode     int
+		expectedBody     string
+		expectedLogError string
 	}{
-		{"Missing ID Param", "", "", http.StatusBadRequest, `{"err":"must provide valid id"}`},
-		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, `{"err":"id type mismatch"}`},
+		{"Missing ID Param", "", "", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrMustProvideValidID), models.ErrMustProvideValidID.Error()},
+		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrIDTypeMismatch), models.ErrIDTypeMismatch.Error()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock service
-			mockService := new(mocks.IGenericService[TestModel, uint])
-			mockLogger := &MockLogger{}
+			mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+			mockLogger := &mocks.Logger{}
+
+			mockLogger.On("Error", tt.expectedLogError).Return(nil)
 
 			// Create the controller
-			ctrl := &controllerGeneric[TestModel, uint]{
+			ctrl := &controllerGeneric[mocks.TestModel, uint]{
 				svcT: mockService,
 				log:  mockLogger,
 			}
@@ -557,36 +528,42 @@ func TestController_Update_InvalidOrNilParam(t *testing.T) {
 			}
 
 			// Call the controller method
-			ctrl.Update(c, TestModel{})
+			ctrl.Update(c, mocks.TestModel{})
 
 			// Assert the response code
 			assert.Equal(t, tt.expectedCode, w.Code)
 
 			// Assert that the response contains the expected error message
+			log.Println(tt.expectedBody)
+			log.Println(w.Body.String())
 			assert.JSONEq(t, tt.expectedBody, w.Body.String())
 		})
 	}
 }
-func TestController_DeleteInvalidOrNilParam(t *testing.T) {
+
+func TestController_Delete_InvalidOrNilParam(t *testing.T) {
 	tests := []struct {
-		name         string
-		paramKey     string
-		paramValue   string
-		expectedCode int
-		expectedBody string
+		name             string
+		paramKey         string
+		paramValue       string
+		expectedCode     int
+		expectedBody     string
+		expectedLogError string
 	}{
-		{"Missing ID Param", "", "", http.StatusBadRequest, `{"err":"must provide valid id"}`},
-		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, `{"err":"id type mismatch"}`},
+		{"Missing ID Param", "", "", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrMustProvideValidID.Error()), models.ErrMustProvideValidID.Error()},
+		{"Invalid ID Param", "id", "abc", http.StatusBadRequest, fmt.Sprintf(`{"err":"%s"}`, models.ErrIDTypeMismatch.Error()), models.ErrIDTypeMismatch.Error()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock service
-			mockService := new(mocks.IGenericService[TestModel, uint])
-			mockLogger := &MockLogger{}
+			mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+			mockLogger := &mocks.Logger{}
+
+			mockLogger.On("Error", tt.expectedLogError).Return(nil)
 
 			// Create the controller
-			ctrl := &controllerGeneric[TestModel, uint]{
+			ctrl := &controllerGeneric[mocks.TestModel, uint]{
 				svcT: mockService,
 				log:  mockLogger,
 			}
@@ -607,23 +584,26 @@ func TestController_DeleteInvalidOrNilParam(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, w.Code)
 
 			// Assert that the response contains the expected error message
+			log.Println(tt.expectedBody)
+			log.Println(w.Body.String())
 			assert.JSONEq(t, tt.expectedBody, w.Body.String())
 		})
 	}
 }
+
 func TestController_Update_Failure_Saving(t *testing.T) {
 	// Create a mock service
-	mockService := new(mocks.IGenericService[TestModel, uint])
-	mockLogger := &MockLogger{}
+	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockLogger := &mocks.Logger{}
 
 	// Test data
-	inputModel := TestModel{ID: 1, Email: "updated@example.com"}
+	inputModel := mocks.TestModel{ID: 1, Email: "updated@example.com"}
 
 	// Simulate update failure
 	mockService.On("Update", uint(1), inputModel).Return(gorm.ErrRecordNotFound)
 
 	// Create the controller
-	ctrl := &controllerGeneric[TestModel, uint]{
+	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		svcT: mockService,
 		log:  mockLogger,
 	}
@@ -643,5 +623,3 @@ func TestController_Update_Failure_Saving(t *testing.T) {
 	expectedBody := `{"err":"no rows found"}`
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
-
-// assert.ErrorIs(t, err, gorm.ErrRecordNotFound, "Expected gorm.ErrRecordNotFound error")

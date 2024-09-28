@@ -63,9 +63,8 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 
 	id, ok = idInterface.(X)
 	if !ok {
-		err := "id type mismatch"
-		u.log.Error(err)
-		c.JSON(http.StatusBadRequest, gin.H{"err": err})
+		u.log.Error(models.ErrIDTypeMismatch.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
 		return
 	}
 
@@ -112,9 +111,8 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 
 	id, ok = idInterface.(X)
 	if !ok {
-		err := "id type mismatch"
-		u.log.Error(err)
-		c.JSON(http.StatusBadRequest, gin.H{"err": err})
+		u.log.Error(models.ErrIDTypeMismatch.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
 		return
 	}
 
@@ -142,9 +140,8 @@ func (u *controllerGeneric[T, X]) Update(c *gin.Context, model T) {
 
 	id, ok = idInterface.(X)
 	if !ok {
-		err := "id type mismatch"
-		u.log.Error(err)
-		c.JSON(http.StatusBadRequest, gin.H{"err": err})
+		u.log.Error(models.ErrIDTypeMismatch.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrIDTypeMismatch.Error()})
 		return
 	}
 
