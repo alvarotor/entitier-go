@@ -174,7 +174,7 @@ func TestGenericRepository_Get_NotFound(t *testing.T) {
 	_, err := repo.Get(ctx, 999, "")
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
 }
 
 func TestGenericRepository_Delete_NotFound(t *testing.T) {
@@ -184,7 +184,7 @@ func TestGenericRepository_Delete_NotFound(t *testing.T) {
 	err := repo.Delete(ctx, 999, false)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
 }
 
 func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
@@ -194,7 +194,7 @@ func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
 	err := repo.Delete(ctx, 999, true)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
 }
 
 func TestGenericRepository_Update_Error(t *testing.T) {
@@ -206,7 +206,7 @@ func TestGenericRepository_Update_Error(t *testing.T) {
 	err := repo.Update(ctx, 999, nonExistentModel)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
 }
 
 func TestGenericRepository_Create_NoRowsAffected(t *testing.T) {
@@ -267,7 +267,7 @@ func TestGenericRepository_SoftDelete(t *testing.T) {
 
 	_, err = repo.Get(ctx, createdModel.ID, "")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
 }
 
 func TestGenericRepository_PermanentDelete_Success(t *testing.T) {
@@ -410,7 +410,7 @@ func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
 	err := repo.Delete(ctx, nonExistentID, true)
 	if err == nil {
 		t.Fatalf("Expected an error when deleting a non-existent item, but got none")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, models.ErrNotFound) {
 		t.Fatalf("Expected 'record not found' error, but got: %v", err)
 	}
 }

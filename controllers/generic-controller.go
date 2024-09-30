@@ -106,11 +106,7 @@ func (u *controllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (in
 	// Update model validation will be done in the service calling this library
 	err := u.svcT.Update(ctx, id, model)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return http.StatusNotFound, models.ErrNotFound
-		} else {
-			return http.StatusInternalServerError, err
-		}
+		return http.StatusInternalServerError, err
 	}
 
 	return http.StatusOK, nil

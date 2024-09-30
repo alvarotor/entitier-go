@@ -62,7 +62,7 @@ func (r *genericRepository[T, X]) Get(ctx context.Context, id X, preload string)
 	result = result.First(model, "ID = ?", id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, gorm.ErrRecordNotFound
+		return nil, models.ErrNotFound
 	}
 	if result.Error != nil {
 		return nil, result.Error
@@ -75,7 +75,7 @@ func (r *genericRepository[T, X]) Update(ctx context.Context, id X, amended T) e
 	var existing T
 	result := r.DB.First(&existing, "ID = ?", id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return gorm.ErrRecordNotFound
+		return models.ErrNotFound
 	}
 	if result.Error != nil {
 		return result.Error
@@ -83,7 +83,7 @@ func (r *genericRepository[T, X]) Update(ctx context.Context, id X, amended T) e
 
 	result = r.DB.Model(&existing).Updates(amended)
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return models.ErrNotFound
 	}
 	if result.Error != nil {
 		return result.Error
@@ -109,13 +109,13 @@ func (r *genericRepository[T, X]) Delete(ctx context.Context, id X, permanently 
 
 	if deleter.Error != nil {
 		if errors.Is(deleter.Error, gorm.ErrRecordNotFound) {
-			return gorm.ErrRecordNotFound
+			return models.ErrNotFound
 		}
 		return deleter.Error
 	}
 
 	if deleter.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return models.ErrNotFound
 	}
 
 	return nil
