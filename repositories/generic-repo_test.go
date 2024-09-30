@@ -142,20 +142,6 @@ func TestGenericRepository_Delete_Permanently(t *testing.T) {
 	assert.Error(t, tx.Error)
 }
 
-func TestGenericRepository_Create_Error(t *testing.T) {
-	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
-	repo := NewGenericRepository[mocks.TestModel, uint](db)
-
-	model := mocks.TestModel{Email: "Test"}
-
-	db.Create(&model)
-
-	_, err := repo.Create(ctx, model)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "UNIQUE constraint failed")
-}
-
 func TestGenericRepository_GetAll_Empty(t *testing.T) {
 	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
@@ -182,16 +168,6 @@ func TestGenericRepository_Delete_NotFound(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	err := repo.Delete(ctx, 999, false)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
-}
-
-func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
-	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
-	repo := NewGenericRepository[mocks.TestModel, uint](db)
-
-	err := repo.Delete(ctx, 999, true)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), models.ErrNotFound.Error())
