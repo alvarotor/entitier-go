@@ -290,22 +290,17 @@ var mu sync.Mutex
 
 func TestGenericRepository_Concurrent_Create(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to connect database: %v", err)
-	}
+	assert.NoError(t, err)
 
 	sqlDB, err := db.DB()
-	if err != nil {
-		t.Fatalf("failed to get db from gorm: %v", err)
-	}
+	assert.NoError(t, err)
+
 	sqlDB.SetConnMaxLifetime(0) // Disable timeout
 	sqlDB.SetMaxOpenConns(1)    // Ensure a single open connection to avoid concurrency issues
 	sqlDB.SetMaxIdleConns(1)    // Only allow 1 idle connection
 
 	err = db.AutoMigrate(&mocks.TestModel{})
-	if err != nil {
-		t.Fatalf("failed to migrate database schema: %v", err)
-	}
+	assert.NoError(t, err)
 
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
@@ -330,10 +325,7 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 
 	var count int64
 	err = db.Model(&mocks.TestModel{}).Count(&count).Error
-	if err != nil {
-		t.Fatalf("Error counting records: %v", err)
-	}
-
+	assert.NoError(t, err)
 	assert.Equal(t, int64(concurrency), count)
 }
 
@@ -350,6 +342,7 @@ func TestGenericRepository_GetAll_LargeDataSet(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1000, len(result))
 }
+
 func TestGenericRepository_Create_SpecialCharacters(t *testing.T) {
 	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
@@ -365,21 +358,17 @@ func TestGenericRepository_Delete_Unscoped(t *testing.T) {
 
 	model := mocks.TestModel{Email: "ToBeDeleted"}
 	createdModel, err := repo.Create(ctx, model)
-	if err != nil {
-		t.Fatalf("Failed to create model: %v", err)
-	}
+	assert.NoError(t, err)
 
 	err = repo.Delete(ctx, createdModel.ID, true)
-	if err != nil {
-		t.Fatalf("Failed to delete model permanently: %v", err)
-	}
+	assert.NoError(t, err)
 
 	var result mocks.TestModel
 	err = db.Unscoped().First(&result, createdModel.ID).Error
 	if err == nil {
-		t.Errorf("Expected record to be deleted, but it still exists")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		t.Errorf("Expected 'record not found' error, but got: %v", err)
+		assert.Fail(t, "Expected record to be deleted, but it still exists")
+	} else {
+		assert.True(t, errors.Is(err, gorm.ErrRecordNotFound), "Expected 'record not found' error, but got: %v", err)
 	}
 }
 
@@ -389,18 +378,15 @@ func TestGenericRepository_Delete_DBError(t *testing.T) {
 
 	model := mocks.TestModel{Email: "error@test.com"}
 	_, err := repo.Create(ctx, model)
-	if err != nil {
-		t.Fatalf("Failed to set up test data: %v", err)
-	}
+	assert.NoError(t, err)
 
 	sqlDB, _ := db.DB()
 	sqlDB.Close()
 
 	err = repo.Delete(ctx, model.ID, true)
-	if err == nil {
-		t.Fatalf("Expected an error due to DB failure, but got none")
-	}
+	assert.Error(t, err)
 }
+
 func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
 	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
@@ -408,11 +394,8 @@ func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
 	nonExistentID := uint(9999)
 
 	err := repo.Delete(ctx, nonExistentID, true)
-	if err == nil {
-		t.Fatalf("Expected an error when deleting a non-existent item, but got none")
-	} else if !errors.Is(err, models.ErrNotFound) {
-		t.Fatalf("Expected 'record not found' error, but got: %v", err)
-	}
+	assert.Error(t, err, "Expected an error when deleting a non-existent item, but got none")
+	assert.True(t, errors.Is(err, models.ErrNotFound), "Expected 'record not found' error, but got: %v", err)
 }
 
 func TestGenericRepository_Get_DBError(t *testing.T) {
@@ -421,17 +404,13 @@ func TestGenericRepository_Get_DBError(t *testing.T) {
 
 	model := mocks.TestModel{Email: "error@test.com"}
 	_, err := repo.Create(ctx, model)
-	if err != nil {
-		t.Fatalf("Failed to create test model: %v", err)
-	}
+	assert.NoError(t, err)
 
 	sqlDB, _ := db.DB()
 	sqlDB.Close()
 
 	_, err = repo.Get(ctx, model.ID, "")
-	if err == nil {
-		t.Fatalf("Expected an error due to DB failure, but got none")
-	}
+	assert.Error(t, err)
 }
 
 func TestGenericRepository_Get_WithPreload(t *testing.T) {
@@ -440,28 +419,16 @@ func TestGenericRepository_Get_WithPreload(t *testing.T) {
 
 	user := TestModelPreload{Email: "user@test.com"}
 	err := db.Create(&user).Error
-	if err != nil {
-		t.Fatalf("Unexpected error creating user: %v", err)
-	}
+	assert.NoError(t, err)
 
 	order := OrdersModel{OrderName: "Test Order", UserID: user.ID}
 	err = db.Create(&order).Error
-	if err != nil {
-		t.Fatalf("Unexpected error creating order: %v", err)
-	}
+	assert.NoError(t, err)
 
 	result, err := repo.Get(ctx, user.ID, "Orders")
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	if len(result.Orders) == 0 {
-		t.Fatalf("Expected preloaded orders, but got none")
-	}
-
-	if result.Orders[0].OrderName != "Test Order" {
-		t.Fatalf("Expected order name 'Test Order', but got %v", result.Orders[0].OrderName)
-	}
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result.Orders, "Expected preloaded orders, but got none")
+	assert.Equal(t, "Test Order", result.Orders[0].OrderName, "Expected order name 'Test Order', but got a different value")
 }
 
 func TestGenericRepository_Delete_StringID(t *testing.T) {
@@ -470,18 +437,16 @@ func TestGenericRepository_Delete_StringID(t *testing.T) {
 
 	model := TestModelWithStringID{ID: "abc123", Email: "test@test.com"}
 	err := db.Create(&model).Error
-	if err != nil {
-		t.Fatalf("Unexpected error creating model: %v", err)
-	}
+	assert.NoError(t, err)
 
 	err = repo.Delete(ctx, model.ID, false)
-	if err != nil {
-		t.Fatalf("Unexpected error during delete: %v", err)
-	}
+	assert.NoError(t, err)
 
 	var deletedModel TestModelWithStringID
 	result := db.First(&deletedModel, "id = ?", model.ID)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		t.Fatalf("Expected record to be deleted, but got unexpected error: %v", result.Error)
+	if result.Error != nil {
+		assert.True(t, errors.Is(result.Error, gorm.ErrRecordNotFound), "Expected 'record not found' error, but got: %v", result.Error)
+	} else {
+		assert.Fail(t, "Expected record to be deleted, but it still exists")
 	}
 }
