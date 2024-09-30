@@ -64,7 +64,7 @@ The generic-service.go file implements a generic service that works with the gen
 
 To use this structure in your project:
 
-1. Define your entity models in the `models/` directory.
+1. Define your entity models in the `models/` directory of your project.
 2. Create instances of `GenericRepository` and `GenericService` for each of your entity types.
 3. Use these instances in your application logic to perform CRUD operations on your entities.
 
@@ -80,9 +80,37 @@ userService := services.NewGenericService[User, uint](userRepo)
 users, err := userService.GetAll()
 ```
 
+You can use it with controllers directly too in your project:
+
+```go
+package main
+
+import (
+    "github.com/alvarotor/entitier-go/controllers"
+    "github.com/alvarotor/entitier-go/logger"
+    "github.com/alvarotor/entitier-go/middleware"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
+)
+
+func main() {
+    r := gin.Default()
+
+    // Create a controller instance
+    db := // ...initialize DB connection
+    log := logger.NewLogger() // Assume you have a logger package
+    userController := controllers.NewGenericController[User, uint](log, db)
+
+    // Example route using the IDValidator middleware
+    r.GET("/users/:id", middleware.IDValidator[uint](), userController.Get)
+
+    r.Run()
+}
+```
+
 ## Test
 
-Test have been done with `mockery` and installed with `sudo apt install mockery`. Command: `mockery --all --with-expecter`.
+Test have been done with `mockery` and installed with `sudo apt install mockery` (linux). Command: `mockery --all --with-expecter`.
 To test fully coverage:
 
 ```sh

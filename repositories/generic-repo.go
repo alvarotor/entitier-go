@@ -47,7 +47,7 @@ func (r genericRepository[T, X]) GetAll(ctx context.Context) ([]*T, error) {
 		return items, result.Error
 	}
 	if len(items) == 0 {
-		return items, models.ErrNotFound // Assuming models.ErrNotFound is used for not found
+		return items, models.ErrNotFound
 	}
 
 	return items, nil
@@ -62,10 +62,10 @@ func (r *genericRepository[T, X]) Get(ctx context.Context, id X, preload string)
 	result = result.First(model, "ID = ?", id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, gorm.ErrRecordNotFound // Return nil when not found
+		return nil, gorm.ErrRecordNotFound
 	}
 	if result.Error != nil {
-		return nil, result.Error // Ensure that an error returns nil as well
+		return nil, result.Error
 	}
 
 	return model, nil
@@ -81,7 +81,6 @@ func (r *genericRepository[T, X]) Update(ctx context.Context, id X, amended T) e
 		return result.Error
 	}
 
-	// Ensure that the updated entity keeps the same ID
 	result = r.DB.Model(&existing).Updates(amended)
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound

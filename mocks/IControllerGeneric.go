@@ -3,7 +3,10 @@
 package mocks
 
 import (
+	context "context"
+
 	gin "github.com/gin-gonic/gin"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -20,20 +23,20 @@ func (_m *IControllerGeneric[T, X]) EXPECT() *IControllerGeneric_Expecter[T, X] 
 	return &IControllerGeneric_Expecter[T, X]{mock: &_m.Mock}
 }
 
-// Create provides a mock function with given fields: _a0
-func (_m *IControllerGeneric[T, X]) Create(_a0 T) (T, error) {
-	ret := _m.Called(_a0)
+// Create provides a mock function with given fields: _a0, _a1
+func (_m *IControllerGeneric[T, X]) Create(_a0 context.Context, _a1 T) (T, error) {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 T
-	if rf, ok := ret.Get(0).(func(T) T); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, T) T); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Get(0).(T)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(T) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(context.Context, T) error); ok {
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -47,14 +50,15 @@ type IControllerGeneric_Create_Call[T interface{}, X interface{ string | uint }]
 }
 
 // Create is a helper method to define mock.On call
-//   - _a0 T
-func (_e *IControllerGeneric_Expecter[T, X]) Create(_a0 interface{}) *IControllerGeneric_Create_Call[T, X] {
-	return &IControllerGeneric_Create_Call[T, X]{Call: _e.mock.On("Create", _a0)}
+//   - _a0 context.Context
+//   - _a1 T
+func (_e *IControllerGeneric_Expecter[T, X]) Create(_a0 interface{}, _a1 interface{}) *IControllerGeneric_Create_Call[T, X] {
+	return &IControllerGeneric_Create_Call[T, X]{Call: _e.mock.On("Create", _a0, _a1)}
 }
 
-func (_c *IControllerGeneric_Create_Call[T, X]) Run(run func(_a0 T)) *IControllerGeneric_Create_Call[T, X] {
+func (_c *IControllerGeneric_Create_Call[T, X]) Run(run func(_a0 context.Context, _a1 T)) *IControllerGeneric_Create_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(T))
+		run(args[0].(context.Context), args[1].(T))
 	})
 	return _c
 }
@@ -148,9 +152,25 @@ func (_c *IControllerGeneric_GetAll_Call[T, X]) Return() *IControllerGeneric_Get
 	return _c
 }
 
-// Update provides a mock function with given fields: c, model
-func (_m *IControllerGeneric[T, X]) Update(c *gin.Context, model T) {
-	_m.Called(c, model)
+// Update provides a mock function with given fields: ctx, id, model
+func (_m *IControllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (int, error) {
+	ret := _m.Called(ctx, id, model)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(context.Context, X, T) int); ok {
+		r0 = rf(ctx, id, model)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, X, T) error); ok {
+		r1 = rf(ctx, id, model)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // IControllerGeneric_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
@@ -159,21 +179,22 @@ type IControllerGeneric_Update_Call[T interface{}, X interface{ string | uint }]
 }
 
 // Update is a helper method to define mock.On call
-//   - c *gin.Context
+//   - ctx context.Context
+//   - id X
 //   - model T
-func (_e *IControllerGeneric_Expecter[T, X]) Update(c interface{}, model interface{}) *IControllerGeneric_Update_Call[T, X] {
-	return &IControllerGeneric_Update_Call[T, X]{Call: _e.mock.On("Update", c, model)}
+func (_e *IControllerGeneric_Expecter[T, X]) Update(ctx interface{}, id interface{}, model interface{}) *IControllerGeneric_Update_Call[T, X] {
+	return &IControllerGeneric_Update_Call[T, X]{Call: _e.mock.On("Update", ctx, id, model)}
 }
 
-func (_c *IControllerGeneric_Update_Call[T, X]) Run(run func(c *gin.Context, model T)) *IControllerGeneric_Update_Call[T, X] {
+func (_c *IControllerGeneric_Update_Call[T, X]) Run(run func(ctx context.Context, id X, model T)) *IControllerGeneric_Update_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*gin.Context), args[1].(T))
+		run(args[0].(context.Context), args[1].(X), args[2].(T))
 	})
 	return _c
 }
 
-func (_c *IControllerGeneric_Update_Call[T, X]) Return() *IControllerGeneric_Update_Call[T, X] {
-	_c.Call.Return()
+func (_c *IControllerGeneric_Update_Call[T, X]) Return(_a0 int, _a1 error) *IControllerGeneric_Update_Call[T, X] {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 

@@ -21,21 +21,17 @@ func GetIDParam(c *gin.Context) interface{} {
 }
 
 func ConvertToGenericID[X string | uint](idInterface interface{}) (X, error) {
-	// Check if idInterface is a string
 	if strVal, ok := idInterface.(string); ok {
 		var zeroX X
-		// Check if X is string and assign
 		if _, isString := any(zeroX).(string); isString {
-			return any(strVal).(X), nil // Type assertion to cast string to X
+			return any(strVal).(X), nil
 		}
 	}
 
-	// Check if idInterface is a uint
 	if uintVal, ok := idInterface.(uint); ok {
 		var zeroX X
-		// Check if X is uint and assign
 		if _, isUint := any(zeroX).(uint); isUint {
-			return any(uintVal).(X), nil // Type assertion to cast uint to X
+			return any(uintVal).(X), nil
 		}
 	}
 
