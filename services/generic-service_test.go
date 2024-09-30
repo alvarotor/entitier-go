@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -10,16 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
+var ctx = context.Background()
+
 func TestGenericService_GetAll_Success(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("GetAll").Return([]*mocks.TestModel{
+	mockRepo.On("GetAll", ctx).Return([]*mocks.TestModel{
 		{Email: "test1@example.com"},
 		{Email: "test2@example.com"},
 	}, nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.GetAll()
+	result, err := service.GetAll(ctx)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(result))
@@ -29,10 +32,10 @@ func TestGenericService_GetAll_Success(t *testing.T) {
 func TestGenericService_GetAll_Empty(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("GetAll").Return([]*mocks.TestModel{}, nil)
+	mockRepo.On("GetAll", ctx).Return([]*mocks.TestModel{}, nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.GetAll()
+	result, err := service.GetAll(ctx)
 
 	assert.NoError(t, err)
 	assert.Nil(t, result)
@@ -41,10 +44,10 @@ func TestGenericService_GetAll_Empty(t *testing.T) {
 func TestGenericService_GetAll_Error(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("GetAll").Return([]*mocks.TestModel{}, errors.New("DB error"))
+	mockRepo.On("GetAll", ctx).Return([]*mocks.TestModel{}, errors.New("DB error"))
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.GetAll()
+	result, err := service.GetAll(ctx)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -54,10 +57,10 @@ func TestGenericService_GetAll_Error(t *testing.T) {
 func TestGenericService_Get_Success(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("Get", uint(1), "").Return(&mocks.TestModel{ID: 1, Email: "test1@example.com"}, nil)
+	mockRepo.On("Get", ctx, uint(1), "").Return(&mocks.TestModel{ID: 1, Email: "test1@example.com"}, nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.Get(1, "")
+	result, err := service.Get(ctx, 1, "")
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test1@example.com", result.Email)
@@ -66,10 +69,10 @@ func TestGenericService_Get_Success(t *testing.T) {
 func TestGenericService_Get_Error(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("Get", uint(1), "").Return(nil, gorm.ErrRecordNotFound)
+	mockRepo.On("Get", ctx, uint(1), "").Return(nil, gorm.ErrRecordNotFound)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.Get(1, "")
+	result, err := service.Get(ctx, 1, "")
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -82,11 +85,11 @@ func TestGenericService_Create_Success(t *testing.T) {
 	inputModel := mocks.TestModel{Email: "test@example.com"}
 	createdModel := mocks.TestModel{ID: 1, Email: "test@example.com"}
 
-	mockRepo.On("Create", inputModel).Return(createdModel, nil)
+	mockRepo.On("Create", ctx, inputModel).Return(createdModel, nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
 
-	result, err := service.Create(inputModel)
+	result, err := service.Create(ctx, inputModel)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test@example.com", result.Email)
@@ -97,11 +100,11 @@ func TestGenericService_Create_Error(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
 	inputModel := mocks.TestModel{Email: "test@example.com"}
-	mockRepo.On("Create", inputModel).Return(mocks.TestModel{}, errors.New("DB error"))
+	mockRepo.On("Create", ctx, inputModel).Return(mocks.TestModel{}, errors.New("DB error"))
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
 
-	result, err := service.Create(inputModel)
+	result, err := service.Create(ctx, inputModel)
 
 	assert.Error(t, err)
 	assert.Equal(t, inputModel, result)
@@ -111,10 +114,10 @@ func TestGenericService_Create_Error(t *testing.T) {
 func TestGenericService_Delete_Success(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("Delete", uint(1), true).Return(nil)
+	mockRepo.On("Delete", ctx, uint(1), true).Return(nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	err := service.Delete(1, true)
+	err := service.Delete(ctx, 1, true)
 
 	assert.NoError(t, err)
 }
@@ -122,10 +125,10 @@ func TestGenericService_Delete_Success(t *testing.T) {
 func TestGenericService_Delete_Error(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
-	mockRepo.On("Delete", uint(1), true).Return(gorm.ErrRecordNotFound)
+	mockRepo.On("Delete", ctx, uint(1), true).Return(gorm.ErrRecordNotFound)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	err := service.Delete(1, true)
+	err := service.Delete(ctx, 1, true)
 
 	assert.Error(t, err)
 	assert.Equal(t, gorm.ErrRecordNotFound, err)
@@ -136,11 +139,11 @@ func TestGenericService_Update_Success(t *testing.T) {
 
 	updatedModel := mocks.TestModel{Email: "updated@example.com"}
 
-	mockRepo.On("Update", uint(1), updatedModel).Return(nil)
+	mockRepo.On("Update", ctx, uint(1), updatedModel).Return(nil)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
 
-	err := service.Update(1, updatedModel)
+	err := service.Update(ctx, 1, updatedModel)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "updated@example.com", updatedModel.Email)
@@ -151,11 +154,11 @@ func TestGenericService_Update_Error(t *testing.T) {
 
 	updatedModel := mocks.TestModel{ID: 1, Email: "updated@example.com"}
 
-	mockRepo.On("Update", uint(1), updatedModel).Return(gorm.ErrRecordNotFound)
+	mockRepo.On("Update", ctx, uint(1), updatedModel).Return(gorm.ErrRecordNotFound)
 
 	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
 
-	err := service.Update(1, updatedModel)
+	err := service.Update(ctx, 1, updatedModel)
 
 	assert.Error(t, err)
 	assert.Equal(t, gorm.ErrRecordNotFound, err)

@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/alvarotor/entitier-go/repositories"
 )
 
@@ -16,8 +18,8 @@ func NewGenericService[T any, X string | uint](
 	}
 }
 
-func (r *GenericService[T, X]) GetAll() ([]*T, error) {
-	model, err := r.repo.GetAll()
+func (r *GenericService[T, X]) GetAll(ctx context.Context) ([]*T, error) {
+	model, err := r.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +31,8 @@ func (r *GenericService[T, X]) GetAll() ([]*T, error) {
 	return model, nil
 }
 
-func (r *GenericService[T, X]) Get(ID X, preload string) (*T, error) {
-	model, err := r.repo.Get(ID, preload)
+func (r *GenericService[T, X]) Get(ctx context.Context, ID X, preload string) (*T, error) {
+	model, err := r.repo.Get(ctx, ID, preload)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +40,8 @@ func (r *GenericService[T, X]) Get(ID X, preload string) (*T, error) {
 	return model, nil
 }
 
-func (r *GenericService[T, X]) Create(data T) (T, error) {
-	created, err := r.repo.Create(data)
+func (r *GenericService[T, X]) Create(ctx context.Context, data T) (T, error) {
+	created, err := r.repo.Create(ctx, data)
 	if err != nil {
 		return data, err
 	}
@@ -47,8 +49,8 @@ func (r *GenericService[T, X]) Create(data T) (T, error) {
 	return created, nil
 }
 
-func (r *GenericService[T, X]) Delete(ID X, permanently bool) error {
-	err := r.repo.Delete(ID, permanently)
+func (r *GenericService[T, X]) Delete(ctx context.Context, ID X, permanently bool) error {
+	err := r.repo.Delete(ctx, ID, permanently)
 	if err != nil {
 		return err
 	}
@@ -56,8 +58,8 @@ func (r *GenericService[T, X]) Delete(ID X, permanently bool) error {
 	return nil
 }
 
-func (r *GenericService[T, X]) Update(ID X, amended T) error {
-	err := r.repo.Update(ID, amended)
+func (r *GenericService[T, X]) Update(ctx context.Context, ID X, amended T) error {
+	err := r.repo.Update(ctx, ID, amended)
 	if err != nil {
 		return err
 	}

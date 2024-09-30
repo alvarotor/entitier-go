@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alvarotor/entitier-go/mocks"
+	"github.com/alvarotor/entitier-go/models"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -39,6 +41,8 @@ type TestModelWithStringID struct {
 	Email string `gorm:"unique"`
 }
 
+var ctx = context.Background()
+
 func TestGenericRepository_Create_WithVariousFields(t *testing.T) {
 	db := mocks.SetupGORMSqlite(t, &TestModelWithVariousFields{})
 	repo := NewGenericRepository[TestModelWithVariousFields, uint](db)
@@ -50,7 +54,7 @@ func TestGenericRepository_Create_WithVariousFields(t *testing.T) {
 		JoinedAt: time.Now(),
 	}
 
-	_, err := repo.Create(model)
+	_, err := repo.Create(ctx, model)
 	assert.NoError(t, err)
 }
 
@@ -61,7 +65,7 @@ func TestGenericRepository_Create(t *testing.T) {
 	model := mocks.TestModel{Email: "Test"}
 
 	// Act
-	createdModel, err := repo.Create(model)
+	createdModel, err := repo.Create(ctx, model)
 
 	// Assert
 	assert.NoError(t, err)
@@ -77,7 +81,7 @@ func TestGenericRepository_GetAll(t *testing.T) {
 	db.Create(&mocks.TestModel{Email: "Test2"})
 
 	// Act
-	result, err := repo.GetAll()
+	result, err := repo.GetAll(ctx)
 
 	// Assert
 	assert.NoError(t, err)
@@ -92,7 +96,7 @@ func TestGenericRepository_Get(t *testing.T) {
 	db.Create(&mocks.TestModel{Email: "Test"})
 
 	// Act
-	result, err := repo.Get(1, "")
+	result, err := repo.Get(ctx, 1, "")
 
 	// Assert
 	assert.NoError(t, err)
@@ -109,7 +113,7 @@ func TestGenericRepository_Update(t *testing.T) {
 	updatedModel := mocks.TestModel{Email: "NewEmail"}
 
 	// Act
-	err := repo.Update(1, updatedModel)
+	err := repo.Update(ctx, 1, updatedModel)
 
 	// Assert
 	assert.NoError(t, err)
@@ -127,7 +131,7 @@ func TestGenericRepository_Delete(t *testing.T) {
 	db.Create(&mocks.TestModel{Email: "ToDelete"})
 
 	// Act
-	err := repo.Delete(1, false)
+	err := repo.Delete(ctx, 1, false)
 
 	// Assert
 	assert.NoError(t, err)
@@ -145,7 +149,7 @@ func TestGenericRepository_Delete_Permanently(t *testing.T) {
 	db.Create(&mocks.TestModel{Email: "ToDelete"})
 
 	// Act
-	err := repo.Delete(1, true)
+	err := repo.Delete(ctx, 1, true)
 
 	// Assert
 	assert.NoError(t, err)
@@ -165,7 +169,7 @@ func TestGenericRepository_Create_Error(t *testing.T) {
 	db.Create(&model)
 
 	// Attempt to create again and expect a duplicate error
-	_, err := repo.Create(model)
+	_, err := repo.Create(ctx, model)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "UNIQUE constraint failed")
@@ -176,12 +180,12 @@ func TestGenericRepository_GetAll_Empty(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Act
-	result, err := repo.GetAll()
+	result, err := repo.GetAll(ctx)
 
 	// Assert
-	assert.Error(t, err)                          // Expecting an error
-	assert.Equal(t, "no rows found", err.Error()) // Adjust based on actual error message
-	assert.Equal(t, 0, len(result))               // Expecting empty result
+	assert.Error(t, err)                     // Expecting an error
+	assert.Equal(t, models.ErrNotFound, err) // Adjust based on actual error message
+	assert.Equal(t, 0, len(result))          // Expecting empty result
 }
 
 func TestGenericRepository_Get_NotFound(t *testing.T) {
@@ -189,7 +193,7 @@ func TestGenericRepository_Get_NotFound(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to get a record that doesn't exist
-	_, err := repo.Get(999, "")
+	_, err := repo.Get(ctx, 999, "")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "record not found")
@@ -200,7 +204,7 @@ func TestGenericRepository_Delete_NotFound(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to delete a record that doesn't exist
-	err := repo.Delete(999, false)
+	err := repo.Delete(ctx, 999, false)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "record not found")
@@ -211,7 +215,7 @@ func TestGenericRepository_Delete_Permanent_NotFound(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	// Try to permanently delete a record that doesn't exist
-	err := repo.Delete(999, true)
+	err := repo.Delete(ctx, 999, true)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "record not found")
@@ -224,7 +228,7 @@ func TestGenericRepository_Update_Error(t *testing.T) {
 	nonExistentModel := mocks.TestModel{Email: "NonExistent"}
 
 	// Try updating a non-existent record
-	err := repo.Update(999, nonExistentModel)
+	err := repo.Update(ctx, 999, nonExistentModel)
 
 	// Assert that an error is returned for trying to update a non-existent record
 	assert.Error(t, err)
@@ -247,7 +251,7 @@ func TestGenericRepository_Create_NoRowsAffected(t *testing.T) {
 	tx.Rollback() // No rows should be affected
 
 	// Now create the model normally, should handle rollback
-	createdModel, err := repo.Create(model)
+	createdModel, err := repo.Create(ctx, model)
 
 	// Assert that Create handles the rollback case properly
 	assert.NoError(t, err)
@@ -259,9 +263,9 @@ func TestGenericRepository_Create_InvalidData(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	invalidModel := mocks.TestModel{Email: ""}
-	_, err := repo.Create(invalidModel)
+	_, err := repo.Create(ctx, invalidModel)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "model cannot be empty")
+	assert.Contains(t, err.Error(), models.ErrModelCannotBeEmpty.Error())
 }
 
 func TestGenericRepository_Update_Partial(t *testing.T) {
@@ -269,14 +273,14 @@ func TestGenericRepository_Update_Partial(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	model := mocks.TestModel{Email: "InitialEmail"}
-	createdModel, err := repo.Create(model)
+	createdModel, err := repo.Create(ctx, model)
 	assert.NoError(t, err)
 
 	updatedModel := mocks.TestModel{Email: "UpdatedEmail"}
-	err = repo.Update(createdModel.ID, updatedModel)
+	err = repo.Update(ctx, createdModel.ID, updatedModel)
 	assert.NoError(t, err)
 
-	fetchedModel, err := repo.Get(createdModel.ID, "")
+	fetchedModel, err := repo.Get(ctx, createdModel.ID, "")
 	assert.NoError(t, err)
 	assert.Equal(t, "UpdatedEmail", fetchedModel.Email)
 }
@@ -286,13 +290,13 @@ func TestGenericRepository_SoftDelete(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	model := mocks.TestModel{Email: "ToDelete"}
-	createdModel, err := repo.Create(model)
+	createdModel, err := repo.Create(ctx, model)
 	assert.NoError(t, err)
 
-	err = repo.Delete(createdModel.ID, false) // Soft delete
+	err = repo.Delete(ctx, createdModel.ID, false) // Soft delete
 	assert.NoError(t, err)
 
-	_, err = repo.Get(createdModel.ID, "")
+	_, err = repo.Get(ctx, createdModel.ID, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "record not found")
 }
@@ -303,10 +307,10 @@ func TestGenericRepository_PermanentDelete_Success(t *testing.T) {
 
 	// Create a model
 	model := mocks.TestModel{Email: "ToBeDeleted"}
-	createdModel, _ := repo.Create(model)
+	createdModel, _ := repo.Create(ctx, model)
 
 	// Permanent delete the model
-	err := repo.Delete(createdModel.ID, true)
+	err := repo.Delete(ctx, createdModel.ID, true)
 	assert.NoError(t, err)
 
 	// Verify the record is deleted
@@ -354,7 +358,7 @@ func TestGenericRepository_Concurrent_Create(t *testing.T) {
 			defer mu.Unlock()
 
 			model := mocks.TestModel{Email: fmt.Sprintf("test%d@example.com", i)}
-			_, err := repo.Create(model)
+			_, err := repo.Create(ctx, model)
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -381,7 +385,7 @@ func TestGenericRepository_GetAll_LargeDataSet(t *testing.T) {
 	}
 
 	// Act
-	result, err := repo.GetAll()
+	result, err := repo.GetAll(ctx)
 
 	// Assert
 	assert.NoError(t, err)
@@ -392,7 +396,7 @@ func TestGenericRepository_Create_SpecialCharacters(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	model := mocks.TestModel{Email: "!@#$%^&*()_+-=~`"}
-	_, err := repo.Create(model)
+	_, err := repo.Create(ctx, model)
 	assert.NoError(t, err)
 }
 
@@ -401,12 +405,12 @@ func TestGenericRepository_Delete_Unscoped(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	model := mocks.TestModel{Email: "ToBeDeleted"}
-	createdModel, err := repo.Create(model)
+	createdModel, err := repo.Create(ctx, model)
 	if err != nil {
 		t.Fatalf("Failed to create model: %v", err)
 	}
 
-	err = repo.Delete(createdModel.ID, true)
+	err = repo.Delete(ctx, createdModel.ID, true)
 	if err != nil {
 		t.Fatalf("Failed to delete model permanently: %v", err)
 	}
@@ -425,7 +429,7 @@ func TestGenericRepository_Delete_DBError(t *testing.T) {
 	repo := NewGenericRepository[mocks.TestModel, uint](db)
 
 	model := mocks.TestModel{Email: "error@test.com"}
-	_, err := repo.Create(model)
+	_, err := repo.Create(ctx, model)
 	if err != nil {
 		t.Fatalf("Failed to set up test data: %v", err)
 	}
@@ -433,7 +437,7 @@ func TestGenericRepository_Delete_DBError(t *testing.T) {
 	sqlDB, _ := db.DB()
 	sqlDB.Close()
 
-	err = repo.Delete(model.ID, true)
+	err = repo.Delete(ctx, model.ID, true)
 	if err == nil {
 		t.Fatalf("Expected an error due to DB failure, but got none")
 	}
@@ -444,7 +448,7 @@ func TestGenericRepository_Delete_NonExistentItem(t *testing.T) {
 
 	nonExistentID := uint(9999)
 
-	err := repo.Delete(nonExistentID, true)
+	err := repo.Delete(ctx, nonExistentID, true)
 	if err == nil {
 		t.Fatalf("Expected an error when deleting a non-existent item, but got none")
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -458,7 +462,7 @@ func TestGenericRepository_Get_DBError(t *testing.T) {
 
 	// Create a model in the DB
 	model := mocks.TestModel{Email: "error@test.com"}
-	_, err := repo.Create(model)
+	_, err := repo.Create(ctx, model)
 	if err != nil {
 		t.Fatalf("Failed to create test model: %v", err)
 	}
@@ -466,7 +470,7 @@ func TestGenericRepository_Get_DBError(t *testing.T) {
 	sqlDB, _ := db.DB()
 	sqlDB.Close()
 
-	_, err = repo.Get(model.ID, "")
+	_, err = repo.Get(ctx, model.ID, "")
 	if err == nil {
 		t.Fatalf("Expected an error due to DB failure, but got none")
 	}
@@ -488,7 +492,7 @@ func TestGenericRepository_Get_WithPreload(t *testing.T) {
 		t.Fatalf("Unexpected error creating order: %v", err)
 	}
 
-	result, err := repo.Get(user.ID, "Orders")
+	result, err := repo.Get(ctx, user.ID, "Orders")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -512,7 +516,7 @@ func TestGenericRepository_Delete_StringID(t *testing.T) {
 		t.Fatalf("Unexpected error creating model: %v", err)
 	}
 
-	err = repo.Delete(model.ID, false)
+	err = repo.Delete(ctx, model.ID, false)
 	if err != nil {
 		t.Fatalf("Unexpected error during delete: %v", err)
 	}

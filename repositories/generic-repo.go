@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"reflect"
 
@@ -18,7 +19,7 @@ func NewGenericRepository[T any, X string | uint](db *gorm.DB) IGenericRepo[T, X
 	}
 }
 
-func (r *genericRepository[T, X]) Create(model T) (T, error) {
+func (r *genericRepository[T, X]) Create(ctx context.Context, model T) (T, error) {
 	// Use reflection to check if model is empty
 	if reflect.DeepEqual(model, reflect.Zero(reflect.TypeOf(model)).Interface()) {
 		return model, models.ErrModelCannotBeEmpty
@@ -39,7 +40,7 @@ func (r *genericRepository[T, X]) Create(model T) (T, error) {
 	return model, nil
 }
 
-func (r genericRepository[T, X]) GetAll() ([]*T, error) {
+func (r genericRepository[T, X]) GetAll(ctx context.Context) ([]*T, error) {
 	var items []*T
 	result := r.DB.Find(&items)
 	if result.Error != nil {
@@ -52,7 +53,7 @@ func (r genericRepository[T, X]) GetAll() ([]*T, error) {
 	return items, nil
 }
 
-func (r *genericRepository[T, X]) Get(id X, preload string) (*T, error) {
+func (r *genericRepository[T, X]) Get(ctx context.Context, id X, preload string) (*T, error) {
 	var model = new(T)
 	result := r.DB
 	if len(preload) > 0 {
@@ -70,7 +71,7 @@ func (r *genericRepository[T, X]) Get(id X, preload string) (*T, error) {
 	return model, nil
 }
 
-func (r *genericRepository[T, X]) Update(id X, amended T) error {
+func (r *genericRepository[T, X]) Update(ctx context.Context, id X, amended T) error {
 	var existing T
 	result := r.DB.First(&existing, "ID = ?", id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -92,7 +93,7 @@ func (r *genericRepository[T, X]) Update(id X, amended T) error {
 	return nil
 }
 
-func (r *genericRepository[T, X]) Delete(id X, permanently bool) error {
+func (r *genericRepository[T, X]) Delete(ctx context.Context, id X, permanently bool) error {
 	t := new(T)
 	var deleter *gorm.DB
 	if permanently {

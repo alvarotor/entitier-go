@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -15,7 +16,7 @@ import (
 
 type IControllerGeneric[T any, X string | uint] interface {
 	GetAll(c *gin.Context)
-	Create(T) (T, error)
+	Create(context.Context, T) (T, error)
 	Get(c *gin.Context)
 	Delete(c *gin.Context)
 	Update(c *gin.Context, model T)
@@ -39,8 +40,10 @@ func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB
 	}
 }
 
-func (u *controllerGeneric[T, X]) Create(model T) (T, error) {
-	m, err := u.svcT.Create(model)
+func (u *controllerGeneric[T, X]) Create(ctx context.Context, model T) (T, error) {
+	// Create model validation will be done in the service calling this library
+
+	m, err := u.svcT.Create(ctx, model)
 	if err != nil {
 		u.log.Error(err.Error())
 		return m, err
@@ -52,25 +55,22 @@ func (u *controllerGeneric[T, X]) Create(model T) (T, error) {
 func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 	idInterface := utils.GetIDParam(c)
 	if idInterface == nil {
-		err := models.ErrMustProvideValidID
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, models.ErrMustProvideValidID, http.StatusBadRequest)
 		return
 	}
 
 	id, err := utils.ConvertToGenericID[X](idInterface)
 	if err != nil {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusBadRequest)
 		return
 	}
 
-	p, err := u.svcT.Get(id, "User")
+	p, err := u.svcT.Get(c, id, "User")
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()}) // Ensure error is a string here
+			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()}) // Ensure proper string conversion for other errors
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 		}
 		return
 	}
@@ -79,15 +79,13 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 }
 
 func (u *controllerGeneric[T, X]) GetAll(c *gin.Context) {
-	ps, err := u.svcT.GetAll()
+	ps, err := u.svcT.GetAll(c)
 	if errors.Is(err, models.ErrNotFound) {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusNotFound)
 		return
 	}
 	if err != nil {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -97,23 +95,19 @@ func (u *controllerGeneric[T, X]) GetAll(c *gin.Context) {
 func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 	idInterface := utils.GetIDParam(c)
 	if idInterface == nil {
-		err := models.ErrMustProvideValidID
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, models.ErrMustProvideValidID, http.StatusBadRequest)
 		return
 	}
 
 	id, err := utils.ConvertToGenericID[X](idInterface)
 	if err != nil {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusBadRequest)
 		return
 	}
 
-	err = u.svcT.Delete(id, true)
+	err = u.svcT.Delete(c, id, true)
 	if err != nil {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -123,28 +117,32 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 func (u *controllerGeneric[T, X]) Update(c *gin.Context, model T) {
 	idInterface := utils.GetIDParam(c)
 	if idInterface == nil {
-		err := models.ErrMustProvideValidID
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, models.ErrMustProvideValidID, http.StatusBadRequest)
 		return
 	}
 
 	id, err := utils.ConvertToGenericID[X](idInterface)
 	if err != nil {
-		u.log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		handleError(c, u.log, err, http.StatusBadRequest)
 		return
 	}
 
-	err = u.svcT.Update(id, model)
+	// Update model validation will be done in the service calling this library
+
+	err = u.svcT.Update(c, id, model)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()}) // Ensure error is a string here
+			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()}) // Ensure proper string conversion for other errors
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
+}
+
+func handleError(c *gin.Context, log logger.Logger, err error, statusCode int) {
+	log.Error(err.Error())
+	c.JSON(statusCode, gin.H{"err": err.Error()})
 }
