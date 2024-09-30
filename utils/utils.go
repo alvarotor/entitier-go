@@ -20,20 +20,18 @@ func GetIDParam(c *gin.Context) interface{} {
 	return idStr
 }
 
-func ConvertToGenericID[X string | uint](idInterface interface{}) (X, error) {
-	if strVal, ok := idInterface.(string); ok {
-		var zeroX X
+func ConvertToGenericID[X string | uint](id interface{}) (X, error) {
+	var zeroX X
+
+	switch v := id.(type) {
+	case string:
 		if _, isString := any(zeroX).(string); isString {
-			return any(strVal).(X), nil
+			return any(v).(X), nil
 		}
-	}
-
-	if uintVal, ok := idInterface.(uint); ok {
-		var zeroX X
+	case uint:
 		if _, isUint := any(zeroX).(uint); isUint {
-			return any(uintVal).(X), nil
+			return any(v).(X), nil
 		}
 	}
-
-	return *new(X), models.ErrIDTypeMismatch
+	return zeroX, models.ErrIDTypeMismatch
 }
