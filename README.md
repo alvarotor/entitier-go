@@ -38,9 +38,9 @@ The interface-generic-repo.go file defines the `IGenericRepo` interface, which s
 
 The controllers directory contains Go files that define the controllers of the application.
 
-#### generic_controller.go
+#### generic-controller.go
 
-The generic_controller.go file implements a generic controller that works with the generic repository and service. It provides a layer of abstraction between the repository, service and the application's HTTP handlers. The controller includes methods that correspond to the CRUD operations:
+The generic-controller.go file implements a generic controller that works with the generic repository and service. It provides a layer of abstraction between the repository, service and the application's HTTP handlers. The controller includes methods that correspond to the CRUD operations:
 
 - `GetAll`: Retrieves all entities of a specific type.
 - `Get`: Retrieves a single entity by ID.
@@ -61,6 +61,22 @@ The generic-service.go file implements a generic service that works with the gen
 - `Create`: Creates a new entity.
 - `Delete`: Removes an entity.
 - `Update`: Modifies an existing entity.
+
+### middleware
+
+The middleware directory contains Go files that define the middlewares of the application. Such as authorization, validation, etc.
+
+#### middleware.go
+
+The middleware.go file implements a set of middlewares that can be used to protect routes and validate requests. For example, the `IDValidator` middleware is used to validate ID parameters in routes, ensuring that they are of the correct type and within a valid range.
+
+### utils
+
+The utils directory contains Go files that define the utils of the application. Such as helpers, constants, etc.
+
+#### utils.go
+
+The utils.go file implements a set of utils that can be used throughout the application. For instance, the `GetIDParam` function retrieves the ID parameter from a gin context, handling various cases like missing or invalid ID values. Additionally, the `ConvertToGenericID` function provides a way to convert an `interface{}` type to a generic ID type (string or uint), allowing for flexible ID handling across different entities.
 
 ## Key Features
 
