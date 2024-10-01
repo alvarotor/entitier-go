@@ -34,6 +34,20 @@ This implementation uses GORM as the ORM (Object-Relational Mapping) library to 
 
 The interface-generic-repo.go file defines the `IGenericRepo` interface, which specifies the methods that any repository implementation should provide. This allows for easy swapping of repository implementations if needed.
 
+### controllers/
+
+The controllers directory contains Go files that define the controllers of the application.
+
+#### generic_controller.go
+
+The generic_controller.go file implements a generic controller that works with the generic repository and service. It provides a layer of abstraction between the repository, service and the application's HTTP handlers. The controller includes methods that correspond to the CRUD operations:
+
+- `GetAll`: Retrieves all entities of a specific type.
+- `Get`: Retrieves a single entity by ID.
+- `Create`: Creates a new entity.
+- `Delete`: Removes an entity.
+- `Update`: Modifies an existing entity.
+
 ### services/
 
 The services directory contains Go files that define the business logic of the application.
