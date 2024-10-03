@@ -59,7 +59,12 @@ func (r *genericRepository[T, X]) Get(ctx context.Context, id X, preload string)
 	if len(preload) > 0 {
 		result = result.Preload(preload)
 	}
-	result = result.First(model, "ID = ?", id)
+
+	if _, ok := any(id).(string); ok {
+		result = result.First(model, "ID = '?'", id)
+	} else {
+		result = result.First(model, "ID = ?", id)
+	}
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, models.ErrNotFound
