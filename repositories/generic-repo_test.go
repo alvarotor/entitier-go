@@ -10,7 +10,6 @@ import (
 
 	"github.com/alvarotor/entitier-go/mocks"
 	"github.com/alvarotor/entitier-go/models"
-
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -83,16 +82,41 @@ func TestGenericRepository_GetAll(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 }
 
-func TestGenericRepository_Get(t *testing.T) {
-	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
-	repo := NewGenericRepository[mocks.TestModel, uint](db)
+func TestGenericRepository_Get_StringAndUintID(t *testing.T) {
+	// Test with string ID
+	dbString := mocks.SetupGORMSqlite(t, &TestModelWithStringID{})
+	repoString := NewGenericRepository[TestModelWithStringID, string](dbString)
 
-	db.Create(&mocks.TestModel{Email: "Test"})
-
-	result, err := repo.Get(ctx, 1, "")
-
+	modelString := TestModelWithStringID{ID: "abc123", Email: "test@example.com"}
+	err := dbString.Create(&modelString).Error
 	assert.NoError(t, err)
-	assert.Equal(t, uint(1), result.ID)
+
+	resultString, err := repoString.Get(ctx, modelString.ID, "")
+	assert.NoError(t, err)
+	assert.Equal(t, modelString.ID, resultString.ID)
+	assert.Equal(t, modelString.Email, resultString.Email)
+
+	// Test with uint ID
+	dbUint := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repoUint := NewGenericRepository[mocks.TestModel, uint](dbUint)
+
+	modelUint := mocks.TestModel{Email: "test@example.com"}
+	err = dbUint.Create(&modelUint).Error
+	assert.NoError(t, err)
+
+	resultUint, err := repoUint.Get(ctx, modelUint.ID, "")
+	assert.NoError(t, err)
+	assert.Equal(t, modelUint.ID, resultUint.ID)
+	assert.Equal(t, modelUint.Email, resultUint.Email)
+
+	// Test not found cases
+	_, err = repoString.Get(ctx, "nonexistent", "")
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, models.ErrNotFound))
+
+	_, err = repoUint.Get(ctx, uint(9999), "")
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, models.ErrNotFound))
 }
 
 func TestGenericRepository_Update(t *testing.T) {
@@ -425,4 +449,48 @@ func TestGenericRepository_Delete_StringID(t *testing.T) {
 	} else {
 		assert.Fail(t, "Expected record to be deleted, but it still exists")
 	}
+}
+
+func TestUserRepository_Create_Error(t *testing.T) {
+	db := mocks.SetupGORMSqlite(t, &TestModelWithVariousFields{})
+
+	repo := NewGenericRepository[TestModelWithVariousFields, uint](db)
+
+	// Simulate a database error by using a callback
+	db.Callback().Create().Before("gorm:create").Register("error_creator", func(db *gorm.DB) {
+		db.AddError(errors.New("simulated database error"))
+	})
+
+	// Attempt to create a user
+	user := &TestModelWithVariousFields{Email: "John Doe"}
+	_, err := repo.Create(context.Background(), *user)
+
+	// Assert that an error was returned
+	assert.Error(t, err)
+	assert.Equal(t, "simulated database error", err.Error())
+
+	// Verify that no user was actually created
+	var count int64
+	db.Model(&TestModelWithVariousFields{}).Count(&count)
+	assert.Equal(t, int64(0), count, "No user should have been created")
+}
+
+func TestUserRepository_Create_ErrDuplicatedKey(t *testing.T) {
+	db := mocks.SetupGORMSqlite(t, &TestModelWithVariousFields{})
+
+	repo := NewGenericRepository[TestModelWithVariousFields, uint](db)
+
+	db.Callback().Create().Before("gorm:create").Register("error_creator", func(db *gorm.DB) {
+		db.AddError(gorm.ErrDuplicatedKey)
+	})
+
+	user := &TestModelWithVariousFields{Email: "John Doe"}
+	_, err := repo.Create(context.Background(), *user)
+
+	assert.Error(t, err)
+	assert.Equal(t, models.ErrDuplicatedKeyEmail, err)
+
+	var count int64
+	db.Model(&TestModelWithVariousFields{}).Count(&count)
+	assert.Equal(t, int64(0), count, "No user should have been created")
 }

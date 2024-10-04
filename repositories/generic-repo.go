@@ -33,9 +33,6 @@ func (r *genericRepository[T, X]) Create(ctx context.Context, model T) (T, error
 		}
 		return model, result.Error
 	}
-	if result.RowsAffected == 0 {
-		return model, models.ErrNotFound
-	}
 
 	return model, nil
 }
@@ -61,9 +58,9 @@ func (r *genericRepository[T, X]) Get(ctx context.Context, id X, preload string)
 	}
 
 	if _, ok := any(id).(string); ok {
-		result = result.First(model, "ID = '?'", id)
+		result = result.Where("id = ?", id).First(model)
 	} else {
-		result = result.First(model, "ID = ?", id)
+		result = result.First(model, id)
 	}
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
