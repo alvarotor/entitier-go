@@ -127,11 +127,12 @@ func main() {
     r := gin.Default()
 
     // Create a controller instance
-    db := // ...initialize DB connection
+    db := // ...initialize DB GORM connection
     log := logger.NewLogger() // Assume you have a logger package
     userController := controllers.NewGenericController[User, uint](log, db)
 
     // Example route using the IDValidator middleware
+    r.GET("/users", userController.GetAll)
     r.GET("/users/:id", middleware.IDValidator[uint](), userController.Get)
 
     r.Run()
