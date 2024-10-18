@@ -24,10 +24,6 @@ func (r *GenericService[T, X]) GetAll(ctx context.Context) ([]*T, error) {
 		return nil, err
 	}
 
-	if len(model) == 0 {
-		return nil, err
-	}
-
 	return model, nil
 }
 

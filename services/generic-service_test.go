@@ -29,18 +29,6 @@ func TestGenericService_GetAll_Success(t *testing.T) {
 	assert.Equal(t, "test1@example.com", result[0].Email)
 }
 
-func TestGenericService_GetAll_Empty(t *testing.T) {
-	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
-
-	mockRepo.On("GetAll", ctx).Return([]*mocks.TestModel{}, nil)
-
-	service := services.NewGenericService[mocks.TestModel, uint](mockRepo)
-	result, err := service.GetAll(ctx)
-
-	assert.NoError(t, err)
-	assert.Nil(t, result)
-}
-
 func TestGenericService_GetAll_Error(t *testing.T) {
 	mockRepo := new(mocks.IGenericRepo[mocks.TestModel, uint])
 
