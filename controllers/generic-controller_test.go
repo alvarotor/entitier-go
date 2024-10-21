@@ -33,7 +33,7 @@ func TestController_GetAll_Success(t *testing.T) {
 	}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -56,7 +56,7 @@ func TestController_GetAll_NotFound(t *testing.T) {
 	mockLogger.On("Error", "no rows found").Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -80,7 +80,7 @@ func TestController_GetAll_InternalError(t *testing.T) {
 	mockLogger.On("Error", err.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -106,7 +106,7 @@ func TestController_Create_Success(t *testing.T) {
 	mockService.On("Create", ctx, inputModel).Return(createdModel, nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -127,7 +127,7 @@ func TestController_Create_Failure(t *testing.T) {
 	mockService.On("Create", ctx, inputModel).Return(inputModel, err)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -145,7 +145,7 @@ func TestController_Get_Success(t *testing.T) {
 	testModel := &mocks.TestModel{ID: 1, Email: "test1@example.com"}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -180,7 +180,7 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 			mockLogger := &mocks.Logger{}
 
 			ctrl := &controllerGeneric[mocks.TestModel, uint]{
-				svcT: mockService,
+				repo: mockService,
 				log:  mockLogger,
 			}
 
@@ -203,7 +203,7 @@ func TestController_Delete_Success(t *testing.T) {
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -228,7 +228,7 @@ func TestController_Delete_Failure(t *testing.T) {
 	mockLogger.On("Error", models.ErrNotFound.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -255,7 +255,7 @@ func TestController_Update_Success(t *testing.T) {
 	mockService.On("Update", ctx, uint(1), model).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -275,7 +275,7 @@ func TestController_Update_Failure(t *testing.T) {
 	mockService.On("Update", ctx, uint(1), model).Return(errUpdate)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -291,7 +291,7 @@ func TestController_Get_ValidatedIDDoesNotExist(t *testing.T) {
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 
@@ -308,7 +308,7 @@ func TestController_Delete_ValidatedIDDoesNotExist(t *testing.T) {
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
-		svcT: mockService,
+		repo: mockService,
 		log:  mockLogger,
 	}
 

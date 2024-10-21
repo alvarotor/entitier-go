@@ -48,7 +48,7 @@ The generic-controller.go file implements a generic controller that works with t
 - `Delete`: Removes an entity.
 - `Update`: Modifies an existing entity.
 
-### services/
+<!-- ### services/
 
 The services directory contains Go files that define the business logic of the application.
 
@@ -60,7 +60,7 @@ The generic-service.go file implements a generic service that works with the gen
 - `Get`: Retrieves a single entity by ID.
 - `Create`: Creates a new entity.
 - `Delete`: Removes an entity.
-- `Update`: Modifies an existing entity.
+- `Update`: Modifies an existing entity. -->
 
 ### middleware
 
@@ -95,7 +95,8 @@ The utils.go file implements a set of utils that can be used throughout the appl
 To use this structure in your project:
 
 1. Define your entity models in the `models/` directory of your project.
-2. Create instances of `GenericRepository` and `GenericService` for each of your entity types.
+<!-- 2. Create instances of `GenericRepository` and `GenericService` for each of your entity types. -->
+2. Create instances of `GenericRepository` for each of your entity types.
 3. Use these instances in your application logic to perform CRUD operations on your entities.
 
 Example:
@@ -104,7 +105,7 @@ Example:
 // Assuming you have a User entity
 db := // your GORM database instance
 userRepo := repositories.NewGenericRepository[User, uint](db)
-userService := services.NewGenericService[User, uint](userRepo)
+// userService := services.NewGenericService[User, uint](userRepo)
 
 // Now you can use userService to perform operations on User entities
 users, err := userService.GetAll()

@@ -7,26 +7,27 @@ import (
 
 	"github.com/alvarotor/entitier-go/logger"
 	"github.com/alvarotor/entitier-go/models"
-	"github.com/alvarotor/entitier-go/repositories"
-	"github.com/alvarotor/entitier-go/services"
+	"github.com/alvarotor/entitier-go/repository"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type controllerGeneric[T any, X string | uint] struct {
-	svcT services.IGenericService[T, X]
+	// svcT service.IGenericService[T, X]
+	repo repository.IGenericRepo[T, X]
 	log  logger.Logger
 }
 
 func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB) IControllerGeneric[T, X] {
-	repo := repositories.NewGenericRepository[T, X](
+	repo := repository.NewGenericRepository[T, X](
 		db,
 	)
-	svcGen := services.NewGenericService(
-		repo,
-	)
+	// svcGen := service.NewGenericService(
+	// 	repo,
+	// )
 	return &controllerGeneric[T, X]{
-		svcT: svcGen,
+		// svcT: svcGen,
+		repo: repo,
 		log:  log,
 	}
 }
@@ -34,7 +35,7 @@ func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB
 func (u *controllerGeneric[T, X]) Create(ctx context.Context, model T) (T, error) {
 
 	// Create model validation will be done in the service calling this library
-	m, err := u.svcT.Create(ctx, model)
+	m, err := u.repo.Create(ctx, model)
 	if err != nil {
 		u.log.Error(err.Error())
 		return m, err
@@ -50,7 +51,7 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 		return
 	}
 
-	p, err := u.svcT.Get(c, id.(X), "User")
+	p, err := u.repo.Get(c, id.(X), "User")
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
@@ -64,7 +65,7 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 }
 
 func (u *controllerGeneric[T, X]) GetAll(c *gin.Context) {
-	ps, err := u.svcT.GetAll(c)
+	ps, err := u.repo.GetAll(c)
 	if errors.Is(err, models.ErrNotFound) {
 		handleError(c, u.log, err, http.StatusNotFound)
 		return
@@ -84,7 +85,7 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 		return
 	}
 
-	err := u.svcT.Delete(c, id.(X), true)
+	err := u.repo.Delete(c, id.(X), true)
 	if err != nil {
 		handleError(c, u.log, err, http.StatusInternalServerError)
 		return
@@ -96,7 +97,7 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 func (u *controllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (int, error) {
 
 	// Update model validation will be done in the service calling this library
-	err := u.svcT.Update(ctx, id, model)
+	err := u.repo.Update(ctx, id, model)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

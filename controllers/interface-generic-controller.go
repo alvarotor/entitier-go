@@ -7,9 +7,9 @@ import (
 )
 
 type IControllerGeneric[T any, X string | uint] interface {
-	GetAll(c *gin.Context)
+	GetAll(*gin.Context)
 	Create(context.Context, T) (T, error)
-	Get(c *gin.Context)
-	Delete(c *gin.Context)
-	Update(ctx context.Context, id X, model T) (int, error)
+	Get(*gin.Context)
+	Delete(*gin.Context)
+	Update(context.Context, X, T) (int, error)
 }
