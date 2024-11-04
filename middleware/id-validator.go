@@ -53,3 +53,10 @@ func convertToGenericID[X string | uint](id interface{}) (X, error) {
 	}
 	return zeroX, models.ErrIDTypeMismatch
 }
+
+func Preload(value string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("preloadArg", value)
+		c.Next()
+	}
+}
