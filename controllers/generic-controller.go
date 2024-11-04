@@ -13,7 +13,6 @@ import (
 )
 
 type controllerGeneric[T any, X string | uint] struct {
-	// svcT service.IGenericService[T, X]
 	repo repository.IGenericRepo[T, X]
 	log  logger.Logger
 }
@@ -22,11 +21,7 @@ func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB
 	repo := repository.NewGenericRepository[T, X](
 		db,
 	)
-	// svcGen := service.NewGenericService(
-	// 	repo,
-	// )
 	return &controllerGeneric[T, X]{
-		// svcT: svcGen,
 		repo: repo,
 		log:  log,
 	}
@@ -51,7 +46,9 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 		return
 	}
 
-	p, err := u.repo.Get(c, id.(X), "User")
+	preloadArg, _ := c.Get("preloadArg")
+
+	p, err := u.repo.Get(c, id.(X), preloadArg.(string))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
