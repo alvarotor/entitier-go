@@ -68,9 +68,9 @@ func (_c *IControllerGeneric_Create_Call[T, X]) Return(_a0 T, _a1 error) *IContr
 	return _c
 }
 
-// Delete provides a mock function with given fields: c
-func (_m *IControllerGeneric[T, X]) Delete(c *gin.Context) {
-	_m.Called(c)
+// Delete provides a mock function with given fields: _a0
+func (_m *IControllerGeneric[T, X]) Delete(_a0 *gin.Context) {
+	_m.Called(_a0)
 }
 
 // IControllerGeneric_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
@@ -79,12 +79,12 @@ type IControllerGeneric_Delete_Call[T interface{}, X interface{ string | uint }]
 }
 
 // Delete is a helper method to define mock.On call
-//   - c *gin.Context
-func (_e *IControllerGeneric_Expecter[T, X]) Delete(c interface{}) *IControllerGeneric_Delete_Call[T, X] {
-	return &IControllerGeneric_Delete_Call[T, X]{Call: _e.mock.On("Delete", c)}
+//   - _a0 *gin.Context
+func (_e *IControllerGeneric_Expecter[T, X]) Delete(_a0 interface{}) *IControllerGeneric_Delete_Call[T, X] {
+	return &IControllerGeneric_Delete_Call[T, X]{Call: _e.mock.On("Delete", _a0)}
 }
 
-func (_c *IControllerGeneric_Delete_Call[T, X]) Run(run func(c *gin.Context)) *IControllerGeneric_Delete_Call[T, X] {
+func (_c *IControllerGeneric_Delete_Call[T, X]) Run(run func(_a0 *gin.Context)) *IControllerGeneric_Delete_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*gin.Context))
 	})
@@ -96,9 +96,9 @@ func (_c *IControllerGeneric_Delete_Call[T, X]) Return() *IControllerGeneric_Del
 	return _c
 }
 
-// Get provides a mock function with given fields: c
-func (_m *IControllerGeneric[T, X]) Get(c *gin.Context) {
-	_m.Called(c)
+// Get provides a mock function with given fields: _a0
+func (_m *IControllerGeneric[T, X]) Get(_a0 *gin.Context) {
+	_m.Called(_a0)
 }
 
 // IControllerGeneric_Get_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Get'
@@ -107,12 +107,12 @@ type IControllerGeneric_Get_Call[T interface{}, X interface{ string | uint }] st
 }
 
 // Get is a helper method to define mock.On call
-//   - c *gin.Context
-func (_e *IControllerGeneric_Expecter[T, X]) Get(c interface{}) *IControllerGeneric_Get_Call[T, X] {
-	return &IControllerGeneric_Get_Call[T, X]{Call: _e.mock.On("Get", c)}
+//   - _a0 *gin.Context
+func (_e *IControllerGeneric_Expecter[T, X]) Get(_a0 interface{}) *IControllerGeneric_Get_Call[T, X] {
+	return &IControllerGeneric_Get_Call[T, X]{Call: _e.mock.On("Get", _a0)}
 }
 
-func (_c *IControllerGeneric_Get_Call[T, X]) Run(run func(c *gin.Context)) *IControllerGeneric_Get_Call[T, X] {
+func (_c *IControllerGeneric_Get_Call[T, X]) Run(run func(_a0 *gin.Context)) *IControllerGeneric_Get_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*gin.Context))
 	})
@@ -124,9 +124,9 @@ func (_c *IControllerGeneric_Get_Call[T, X]) Return() *IControllerGeneric_Get_Ca
 	return _c
 }
 
-// GetAll provides a mock function with given fields: c
-func (_m *IControllerGeneric[T, X]) GetAll(c *gin.Context) {
-	_m.Called(c)
+// GetAll provides a mock function with given fields: _a0
+func (_m *IControllerGeneric[T, X]) GetAll(_a0 *gin.Context) {
+	_m.Called(_a0)
 }
 
 // IControllerGeneric_GetAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAll'
@@ -135,12 +135,12 @@ type IControllerGeneric_GetAll_Call[T interface{}, X interface{ string | uint }]
 }
 
 // GetAll is a helper method to define mock.On call
-//   - c *gin.Context
-func (_e *IControllerGeneric_Expecter[T, X]) GetAll(c interface{}) *IControllerGeneric_GetAll_Call[T, X] {
-	return &IControllerGeneric_GetAll_Call[T, X]{Call: _e.mock.On("GetAll", c)}
+//   - _a0 *gin.Context
+func (_e *IControllerGeneric_Expecter[T, X]) GetAll(_a0 interface{}) *IControllerGeneric_GetAll_Call[T, X] {
+	return &IControllerGeneric_GetAll_Call[T, X]{Call: _e.mock.On("GetAll", _a0)}
 }
 
-func (_c *IControllerGeneric_GetAll_Call[T, X]) Run(run func(c *gin.Context)) *IControllerGeneric_GetAll_Call[T, X] {
+func (_c *IControllerGeneric_GetAll_Call[T, X]) Run(run func(_a0 *gin.Context)) *IControllerGeneric_GetAll_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*gin.Context))
 	})
@@ -152,20 +152,20 @@ func (_c *IControllerGeneric_GetAll_Call[T, X]) Return() *IControllerGeneric_Get
 	return _c
 }
 
-// Update provides a mock function with given fields: ctx, id, model
-func (_m *IControllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (int, error) {
-	ret := _m.Called(ctx, id, model)
+// Update provides a mock function with given fields: _a0, _a1, _a2
+func (_m *IControllerGeneric[T, X]) Update(_a0 context.Context, _a1 X, _a2 T) (int, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 int
 	if rf, ok := ret.Get(0).(func(context.Context, X, T) int); ok {
-		r0 = rf(ctx, id, model)
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, X, T) error); ok {
-		r1 = rf(ctx, id, model)
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -179,14 +179,14 @@ type IControllerGeneric_Update_Call[T interface{}, X interface{ string | uint }]
 }
 
 // Update is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id X
-//   - model T
-func (_e *IControllerGeneric_Expecter[T, X]) Update(ctx interface{}, id interface{}, model interface{}) *IControllerGeneric_Update_Call[T, X] {
-	return &IControllerGeneric_Update_Call[T, X]{Call: _e.mock.On("Update", ctx, id, model)}
+//   - _a0 context.Context
+//   - _a1 X
+//   - _a2 T
+func (_e *IControllerGeneric_Expecter[T, X]) Update(_a0 interface{}, _a1 interface{}, _a2 interface{}) *IControllerGeneric_Update_Call[T, X] {
+	return &IControllerGeneric_Update_Call[T, X]{Call: _e.mock.On("Update", _a0, _a1, _a2)}
 }
 
-func (_c *IControllerGeneric_Update_Call[T, X]) Run(run func(ctx context.Context, id X, model T)) *IControllerGeneric_Update_Call[T, X] {
+func (_c *IControllerGeneric_Update_Call[T, X]) Run(run func(_a0 context.Context, _a1 X, _a2 T)) *IControllerGeneric_Update_Call[T, X] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(X), args[2].(T))
 	})

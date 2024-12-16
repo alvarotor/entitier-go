@@ -8,4 +8,5 @@ type IGenericRepo[T any, X string | uint] interface {
 	Get(context.Context, X, string) (*T, error)
 	Update(context.Context, X, T) error
 	Delete(context.Context, X, bool) error
+	UpdateField(context.Context, X, string, interface{}) error
 }

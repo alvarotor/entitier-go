@@ -27,6 +27,7 @@ The generic-repo.go file implements a generic repository using Go's generics fea
 - `Get`: Retrieves a single entity by ID, with an option to preload related data.
 - `Update`: Modifies an existing entity.
 - `Delete`: Removes an entity, with an option for soft or hard deletion.
+- `UpdateField`: Updates a specific field of an entity.
 
 This implementation uses GORM as the ORM (Object-Relational Mapping) library to interact with the database.
 
@@ -47,20 +48,6 @@ The generic-controller.go file implements a generic controller that works with t
 - `Create`: Creates a new entity.
 - `Delete`: Removes an entity.
 - `Update`: Modifies an existing entity.
-
-<!-- ### services/
-
-The services directory contains Go files that define the business logic of the application.
-
-#### generic-service.go
-
-The generic-service.go file implements a generic service that works with the generic repository. It provides a layer of abstraction between the repository and the application's business logic. The service includes methods that correspond to the repository operations:
-
-- `GetAll`: Retrieves all entities of a specific type.
-- `Get`: Retrieves a single entity by ID.
-- `Create`: Creates a new entity.
-- `Delete`: Removes an entity.
-- `Update`: Modifies an existing entity. -->
 
 ### middleware
 
@@ -95,7 +82,6 @@ The utils.go file implements a set of utils that can be used throughout the appl
 To use this structure in your project:
 
 1. Define your entity models in the `models/` directory of your project.
-<!-- 2. Create instances of `GenericRepository` and `GenericService` for each of your entity types. -->
 2. Create instances of `GenericRepository` for each of your entity types.
 3. Use these instances in your application logic to perform CRUD operations on your entities.
 

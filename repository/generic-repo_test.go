@@ -136,6 +136,25 @@ func TestGenericRepository_Update(t *testing.T) {
 	assert.Equal(t, "NewEmail", fetchedModel.Email)
 }
 
+func TestGenericRepository_UpdateField(t *testing.T) {
+	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
+	repo := NewGenericRepository[mocks.TestModel, uint](db)
+
+	// Create a test record
+	model := mocks.TestModel{Email: "initial@example.com"}
+	createdModel, err := repo.Create(ctx, model)
+	assert.NoError(t, err)
+
+	// Update the Email field
+	err = repo.UpdateField(ctx, createdModel.ID, "Email", "updated@example.com")
+	assert.NoError(t, err)
+
+	// Fetch the updated record
+	updatedModel, err := repo.Get(ctx, createdModel.ID, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "updated@example.com", updatedModel.Email)
+}
+
 func TestGenericRepository_Delete(t *testing.T) {
 	db := mocks.SetupGORMSqlite(t, &mocks.TestModel{})
 	repo := NewGenericRepository[mocks.TestModel, uint](db)

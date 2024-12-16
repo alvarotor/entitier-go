@@ -24,7 +24,7 @@ func createMockGinContext() (*gin.Context, *httptest.ResponseRecorder) {
 }
 
 func TestController_GetAll_Success(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	testModels := []*mocks.TestModel{
@@ -50,7 +50,7 @@ func TestController_GetAll_Success(t *testing.T) {
 }
 
 func TestController_GetAll_NotFound(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	mockLogger.On("Error", "no rows found").Return(nil)
@@ -73,7 +73,7 @@ func TestController_GetAll_NotFound(t *testing.T) {
 }
 
 func TestController_GetAll_InternalError(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	err := errors.New("database error")
@@ -97,7 +97,7 @@ func TestController_GetAll_InternalError(t *testing.T) {
 }
 
 func TestController_Create_Success(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	inputModel := mocks.TestModel{Email: "test@example.com"}
@@ -117,7 +117,7 @@ func TestController_Create_Success(t *testing.T) {
 }
 
 func TestController_Create_Failure(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	inputModel := mocks.TestModel{Email: "test@example.com"}
@@ -139,7 +139,7 @@ func TestController_Create_Failure(t *testing.T) {
 }
 
 func TestController_Get_Success(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	testModel := &mocks.TestModel{ID: 1, Email: "test1@example.com"}
@@ -153,7 +153,7 @@ func TestController_Get_Success(t *testing.T) {
 
 	c.Set("validatedID", uint(1))
 
-	mockService.On("Get", c, uint(1), "User").Return(testModel, nil)
+	mockService.On("Get", c, uint(1), "").Return(testModel, nil)
 
 	ctrl.Get(c)
 
@@ -176,7 +176,7 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+			mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 			mockLogger := &mocks.Logger{}
 
 			ctrl := &controllerGeneric[mocks.TestModel, uint]{
@@ -188,7 +188,7 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 
 			c.Set("validatedID", uint(1))
 
-			mockService.On("Get", c, uint(1), "User").Return(nil, tt.mockError)
+			mockService.On("Get", c, uint(1), "").Return(nil, tt.mockError)
 
 			ctrl.Get(c)
 
@@ -199,7 +199,7 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 }
 
 func TestController_Delete_Success(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
@@ -222,7 +222,7 @@ func TestController_Delete_Success(t *testing.T) {
 }
 
 func TestController_Delete_Failure(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	mockLogger.On("Error", models.ErrNotFound.Error()).Return(nil)
@@ -247,7 +247,7 @@ func TestController_Delete_Failure(t *testing.T) {
 }
 
 func TestController_Update_Success(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	model := mocks.TestModel{ID: 1, Email: "test@example.com"}
@@ -266,7 +266,7 @@ func TestController_Update_Success(t *testing.T) {
 }
 
 func TestController_Update_Failure(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	model := mocks.TestModel{ID: 1, Email: "test@example.com"}
@@ -287,7 +287,7 @@ func TestController_Update_Failure(t *testing.T) {
 }
 
 func TestController_Get_ValidatedIDDoesNotExist(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
@@ -303,8 +303,9 @@ func TestController_Get_ValidatedIDDoesNotExist(t *testing.T) {
 	expectedBody := fmt.Sprintf(`{"err":"%s"}`, models.ErrMustProvideValidID.Error())
 	assert.JSONEq(t, expectedBody, w.Body.String())
 }
+
 func TestController_Delete_ValidatedIDDoesNotExist(t *testing.T) {
-	mockService := new(mocks.IGenericService[mocks.TestModel, uint])
+	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{

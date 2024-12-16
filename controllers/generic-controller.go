@@ -45,9 +45,15 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 		return
 	}
 
-	preloadArg, _ := c.Get("preloadArg")
+	preloadArgInterface, exists := c.Get("preloadArg")
+	var preloadArg string
+	if exists && preloadArgInterface != nil {
+		preloadArg = preloadArgInterface.(string)
+	} else {
+		preloadArg = ""
+	}
 
-	p, err := u.repo.Get(c, id.(X), preloadArg.(string))
+	p, err := u.repo.Get(c, id.(X), preloadArg)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
