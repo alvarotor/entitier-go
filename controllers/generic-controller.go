@@ -29,7 +29,6 @@ func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB
 
 func (u *controllerGeneric[T, X]) Create(ctx context.Context, model T) (T, error) {
 
-	// Create model validation will be done in the service calling this library
 	m, err := u.repo.Create(ctx, model)
 	if err != nil {
 		u.log.Error(err.Error())
@@ -93,7 +92,6 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 
 func (u *controllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (int, error) {
 
-	// Update model validation will be done in the service calling this library
 	err := u.repo.Update(ctx, id, model)
 	if err != nil {
 		return http.StatusInternalServerError, err

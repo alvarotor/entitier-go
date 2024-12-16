@@ -94,6 +94,27 @@ func (r *genericRepository[T, X]) Update(ctx context.Context, id X, amended T) e
 	return nil
 }
 
+func (r *genericRepository[T, X]) UpdateField(ctx context.Context, id X, field string, amended interface{}) error {
+	var existing T
+	result := r.DB.First(&existing, "ID = ?", id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return models.ErrNotFound
+	}
+	if result.Error != nil {
+		return result.Error
+	}
+
+	result = r.DB.Model(&existing).Update(field, amended)
+	if result.RowsAffected == 0 {
+		return models.ErrNotFound
+	}
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
 func (r *genericRepository[T, X]) Delete(ctx context.Context, id X, permanently bool) error {
 	t := new(T)
 	var deleter *gorm.DB
