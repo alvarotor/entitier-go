@@ -1,7 +1,7 @@
 package logger
 
 type Logger interface {
-	Info(message string)
-	Error(message string)
-	Debug(message string)
+	Info(id string, message string)
+	Error(id string, message string)
+	Debug(id string, message string)
 }

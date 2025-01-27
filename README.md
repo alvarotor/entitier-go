@@ -128,10 +128,11 @@ func main() {
 
 ## Test
 
-Test have been done with `mockery` and installed with `sudo apt install mockery` (linux). Command: `mockery --all --with-expecter`.
+Test have been done with `mockery` and installed with `sudo apt install mockery` (linux). Command: `mockery --all --with-expecter`. For macos: `brew install mockery`.
 To test fully coverage:
 
 ```sh
+go test -v ./...
 go test -v -coverprofile cover.out ./...
 go tool cover -html cover.out -o cover.html
 ```

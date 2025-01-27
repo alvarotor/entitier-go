@@ -28,10 +28,9 @@ func NewGenericController[T any, X string | uint](log logger.Logger, db *gorm.DB
 }
 
 func (u *controllerGeneric[T, X]) Create(ctx context.Context, model T) (T, error) {
-
 	m, err := u.repo.Create(ctx, model)
 	if err != nil {
-		u.log.Error(err.Error())
+		u.log.Error("create", err.Error())
 		return m, err
 	}
 
@@ -41,7 +40,7 @@ func (u *controllerGeneric[T, X]) Create(ctx context.Context, model T) (T, error
 func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 	id, exists := c.Get("validatedID")
 	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"err": models.ErrMustProvideValidID.Error()})
+		handleError(c, u.log, "get", models.ErrMustProvideValidID, http.StatusBadRequest)
 		return
 	}
 
@@ -56,9 +55,9 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 	p, err := u.repo.Get(c, id.(X), preloadArg)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"err": models.ErrNotFound.Error()})
+			handleError(c, u.log, "get", models.ErrNotFound, http.StatusNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			handleError(c, u.log, "get", err, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -69,11 +68,11 @@ func (u *controllerGeneric[T, X]) Get(c *gin.Context) {
 func (u *controllerGeneric[T, X]) GetAll(c *gin.Context) {
 	ps, err := u.repo.GetAll(c)
 	if errors.Is(err, models.ErrNotFound) {
-		handleError(c, u.log, err, http.StatusNotFound)
+		handleError(c, u.log, "getall", err, http.StatusNotFound)
 		return
 	}
 	if err != nil {
-		handleError(c, u.log, err, http.StatusInternalServerError)
+		handleError(c, u.log, "getall", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -89,7 +88,7 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 
 	err := u.repo.Delete(c, id.(X), true)
 	if err != nil {
-		handleError(c, u.log, err, http.StatusInternalServerError)
+		handleError(c, u.log, "delete", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -97,7 +96,6 @@ func (u *controllerGeneric[T, X]) Delete(c *gin.Context) {
 }
 
 func (u *controllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (int, error) {
-
 	err := u.repo.Update(ctx, id, model)
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -106,7 +104,7 @@ func (u *controllerGeneric[T, X]) Update(ctx context.Context, id X, model T) (in
 	return http.StatusOK, nil
 }
 
-func handleError(c *gin.Context, log logger.Logger, err error, statusCode int) {
-	log.Error(err.Error())
+func handleError(c *gin.Context, log logger.Logger, id string, err error, statusCode int) {
+	log.Error(id, err.Error())
 	c.JSON(statusCode, gin.H{"err": err.Error()})
 }
