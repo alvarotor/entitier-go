@@ -53,7 +53,7 @@ func TestController_GetAll_NotFound(t *testing.T) {
 	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
-	mockLogger.On("Error", "no rows found").Return(nil)
+	mockLogger.On("Error", "getall", models.ErrNotFound.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		repo: mockService,
@@ -77,7 +77,7 @@ func TestController_GetAll_InternalError(t *testing.T) {
 	mockLogger := &mocks.Logger{}
 
 	err := errors.New("database error")
-	mockLogger.On("Error", err.Error()).Return(nil)
+	mockLogger.On("Error", "getall", err.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		repo: mockService,
@@ -123,7 +123,7 @@ func TestController_Create_Failure(t *testing.T) {
 	inputModel := mocks.TestModel{Email: "test@example.com"}
 
 	err := errors.New("create error")
-	mockLogger.On("Error", err.Error()).Return(nil)
+	mockLogger.On("Error", "create", err.Error()).Return(nil)
 	mockService.On("Create", ctx, inputModel).Return(inputModel, err)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
@@ -133,7 +133,7 @@ func TestController_Create_Failure(t *testing.T) {
 
 	result, errCreate := ctrl.Create(ctx, inputModel)
 
-	assert.Error(t, err)
+	assert.Error(t, errCreate)
 	assert.Equal(t, inputModel, result)
 	assert.Equal(t, err.Error(), errCreate.Error())
 }
@@ -169,15 +169,30 @@ func TestController_Get_NotFoundVariants(t *testing.T) {
 		mockError    error
 		expectedBody string
 		expectedCode int
+		loggedError  string
 	}{
-		{"Model Not Found", models.ErrNotFound, `{"err":"` + models.ErrNotFound.Error() + `"}`, http.StatusInternalServerError},
-		{"GORM Record Not Found", gorm.ErrRecordNotFound, `{"err":"no rows found"}`, http.StatusNotFound},
+		{
+			"Model Not Found",
+			models.ErrNotFound,
+			`{"err":"` + models.ErrNotFound.Error() + `"}`,
+			http.StatusInternalServerError,
+			models.ErrNotFound.Error(),
+		},
+		{
+			"GORM Record Not Found",
+			gorm.ErrRecordNotFound,
+			`{"err":"` + models.ErrNotFound.Error() + `"}`,
+			http.StatusNotFound,
+			models.ErrNotFound.Error(),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 			mockLogger := &mocks.Logger{}
+
+			mockLogger.On("Error", "get", tt.loggedError).Return(nil)
 
 			ctrl := &controllerGeneric[mocks.TestModel, uint]{
 				repo: mockService,
@@ -225,7 +240,7 @@ func TestController_Delete_Failure(t *testing.T) {
 	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
 
-	mockLogger.On("Error", models.ErrNotFound.Error()).Return(nil)
+	mockLogger.On("Error", "delete", models.ErrNotFound.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		repo: mockService,
@@ -289,6 +304,8 @@ func TestController_Update_Failure(t *testing.T) {
 func TestController_Get_ValidatedIDDoesNotExist(t *testing.T) {
 	mockService := new(mocks.IGenericRepo[mocks.TestModel, uint])
 	mockLogger := &mocks.Logger{}
+
+	mockLogger.On("Error", "get", models.ErrMustProvideValidID.Error()).Return(nil)
 
 	ctrl := &controllerGeneric[mocks.TestModel, uint]{
 		repo: mockService,
